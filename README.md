@@ -31,3 +31,6 @@ POST `/api/convert`
   "bank_source": "Bank of China"
 }
 ```
+
+Health check:
+- `GET /healthz`

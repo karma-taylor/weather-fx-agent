@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Dict
 
 import requests
@@ -30,6 +31,8 @@ class ConvertRequest(BaseModel):
 
 app = FastAPI(title="Weather-FX Web App")
 app.mount("/static", StaticFiles(directory="."), name="static")
+BASE_DIR = Path(__file__).resolve().parent
+TEMPLATE_FILE = BASE_DIR / "templates" / "index.html"
 
 
 def fetch_market_rate(base: str, target: str) -> float:
@@ -44,8 +47,13 @@ def fetch_market_rate(base: str, target: str) -> float:
 
 @app.get("/", response_class=HTMLResponse)
 def home() -> str:
-    with open("templates/index.html", "r", encoding="utf-8") as f:
+    with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
         return f.read()
+
+
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}
 
 
 @app.post("/api/convert")
