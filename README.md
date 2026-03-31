@@ -1,30 +1,26 @@
+---
+title: weather-fx-agent
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # weather-fx-agent
 
-A simple FX converter web app with optional fixed-rate mode and bank source selection.
+A simple FX converter web app built with FastAPI.
 
-## Features
-- Currency conversion using live market rate
-- Optional fixed-rate conversion
-- Bank source selector (for display and adjustment logic)
-- Web UI for colleagues
+## Local run
 
-## Run locally
-```powershell
-cd E:\ai\weather-fx-agent
-python -m venv .venv
-.\.venv\Scripts\activate
+```bash
 pip install -r requirements.txt
-start_web.bat
+uvicorn webapp:app --host 0.0.0.0 --port 7860
 ```
 
-Open:
-- `http://127.0.0.1:8000`
-
 ## API
-Endpoint:
-- `POST /api/convert`
 
-Example payload:
+POST `/api/convert`
+
 ```json
 {
   "base": "USD",
@@ -32,6 +28,6 @@ Example payload:
   "amount": 1000,
   "use_fixed_rate": false,
   "fixed_rate": 0,
-  "bank_source": "中国银行"
+  "bank_source": "Bank of China"
 }
 ```
