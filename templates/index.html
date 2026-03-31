@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>汇率换算 Agent（Web）</title>
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; background: #f3f6fb; margin: 0; padding: 24px; color: #1f2937; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .card { background: #fff; border: 1px solid #d5dce7; border-radius: 12px; padding: 20px; }
+    h1 { margin: 0 0 18px; text-align: center; }
+    .grid { display: grid; grid-template-columns: 170px 320px 210px; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .grid > * { min-width: 0; }
+    .form-row {
+      width: 760px;
+      margin-left: auto;
+      margin-right: auto;
+      transform: translateX(36px);
+      position: relative;
+      z-index: 1;
+      overflow: visible;
+    }
+    .form-row.combo-open { z-index: 3000; }
+    label { font-weight: 600; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #c7d0dd; border-radius: 8px; font-size: 14px; }
+    .right-field { justify-self: center; width: 170px; text-align: center; }
+    .combo { position: relative; width: 100%; min-width: 0; overflow: visible; z-index: 5; }
+    .combo input { display: block; width: 100%; box-sizing: border-box; padding-right: 40px; }
+    .combo-btn {
+      position: absolute; right: 1px; top: 1px; transform: none;
+      width: 34px; height: calc(100% - 2px); border: none; border-left: 1px solid #d1d5db; background: #f9fafb;
+      border-radius: 0 8px 8px 0; font-size: 12px; color: #374151; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; line-height: 1;
+    }
+    .combo-list {
+      position: absolute; z-index: 9999; width: 100%;
+      max-height: 220px; overflow: auto; background: #fff;
+      border: 1px solid #c7d0dd; border-radius: 8px; margin-top: 4px; padding: 4px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08); display: none;
+    }
+    .combo-item {
+      padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .combo-item:hover { background: #eef2ff; }
+    .inline { display: flex; align-items: center; gap: 10px; }
+    .inline input[type="checkbox"] { width: 18px; height: 18px; }
+    button { border: none; background: #2563eb; color: #fff; border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    .help { color: #6b7280; font-size: 13px; margin: 6px 0 10px; }
+    .fixed-note { color: #9ca3af; font-size: 12px; margin-top: 6px; }
+    .result { margin-top: 16px; border: 1px solid #d5dce7; border-radius: 10px; background: #fafcff; padding: 14px; min-height: 160px; white-space: pre-line; line-height: 1.7; }
+    .err { margin-top: 10px; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; display: none; }
+    .curr { color: #4b5563; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>汇率计算器</h1>
+
+      <div class="grid form-row">
+        <label for="baseInput">待计算币种 (Base)</label>
+        <div class="combo" id="baseCombo">
+          <input id="baseInput" placeholder="输入或下拉选择，如 USD / 美元" />
+          <button type="button" class="combo-btn" id="baseBtn">▼</button>
+          <div class="combo-list" id="baseList"></div>
+        </div>
+        <input id="amount" class="right-field" type="number" step="0.01" min="0.000001" value="1000.00" />
+      </div>
+
+      <div class="grid form-row">
+        <label for="targetInput">目标币种 (Target)</label>
+        <div class="combo" id="targetCombo">
+          <input id="targetInput" placeholder="输入或下拉选择，如 CNY / 人民币" />
+          <button type="button" class="combo-btn" id="targetBtn">▼</button>
+          <div class="combo-list" id="targetList"></div>
+        </div>
+        <div></div>
+      </div>
+
+      <div class="grid form-row">
+        <label>固定汇率</label>
+        <div>
+          <div class="inline">
+            <input id="useFixed" type="checkbox" />
+            <span>勾选后使用固定汇率计算</span>
+          </div>
+          <div id="fixedNote" class="fixed-note" style="display:none;">1 USD = 7.2 CNY</div>
+        </div>
+        <input id="fixedRate" class="right-field" type="number" step="0.000001" min="0" placeholder="例如 7.200000" disabled />
+      </div>
+
+      <div class="grid form-row">
+        <label for="bankSource">网络汇率来源</label>
+        <select id="bankSource">
+          <option>中国银行</option>
+          <option>中国农业银行</option>
+          <option>中国工商银行</option>
+          <option>中国建设银行</option>
+        </select>
+        <div class="curr">仅在“不勾选固定汇率”时生效</div>
+      </div>
+
+      <button id="convertBtn">立即换算</button>
+      <div class="help">
+      支持币种（扩展，支持中文识别）：美元(USD)、人民币(CNY)、欧元(EUR)、英镑(GBP)、日元(JPY)、澳元(AUD)、
+      加拿大元(CAD)、瑞士法郎(CHF)、新加坡元(SGD)、港币(HKD)、新西兰元(NZD)、瑞典克朗(SEK)、挪威克朗(NOK)、
+      丹麦克朗(DKK)、俄罗斯卢布(RUB)、印度卢比(INR)、韩元(KRW)、泰铢(THB)、马来西亚林吉特(MYR)、印尼盾(IDR)、
+      菲律宾比索(PHP)、越南盾(VND)、阿联酋迪拉姆(AED)、沙特里亚尔(SAR)、土耳其里拉(TRY)、南非兰特(ZAR)、
+      巴西雷亚尔(BRL)、墨西哥比索(MXN)、阿根廷比索(ARS)、智利比索(CLP)、哥伦比亚比索(COP)、秘鲁索尔(PEN)、
+      埃及镑(EGP)、尼日利亚奈拉(NGN)、巴基斯坦卢比(PKR)、孟加拉塔卡(BDT)、哈萨克斯坦坚戈(KZT)、
+      乌克兰格里夫纳(UAH)、伊拉克第纳尔(IQD)、伊朗里亚尔(IRR)
+      </div>
+
+      <div class="err" id="errorBox"></div>
+      <div class="result" id="resultBox">计算结果将显示在这里...</div>
+    </div>
+  </div>
+
+  <script>
+    const CURRENCIES = [
+      { code: "USD", zh: "美元", en: "US Dollar", aliases: ["美金"] },
+      { code: "CNY", zh: "人民币", en: "Chinese Yuan", aliases: ["RMB", "元"] },
+      { code: "EUR", zh: "欧元", en: "Euro", aliases: [] },
+      { code: "GBP", zh: "英镑", en: "Pound Sterling", aliases: [] },
+      { code: "JPY", zh: "日元", en: "Japanese Yen", aliases: [] },
+      { code: "AUD", zh: "澳元", en: "Australian Dollar", aliases: [] },
+      { code: "CAD", zh: "加拿大元", en: "Canadian Dollar", aliases: [] },
+      { code: "CHF", zh: "瑞士法郎", en: "Swiss Franc", aliases: [] },
+      { code: "SGD", zh: "新加坡元", en: "Singapore Dollar", aliases: [] },
+      { code: "HKD", zh: "港币", en: "Hong Kong Dollar", aliases: ["港元"] },
+      { code: "NZD", zh: "新西兰元", en: "New Zealand Dollar", aliases: [] },
+      { code: "SEK", zh: "瑞典克朗", en: "Swedish Krona", aliases: [] },
+      { code: "NOK", zh: "挪威克朗", en: "Norwegian Krone", aliases: [] },
+      { code: "DKK", zh: "丹麦克朗", en: "Danish Krone", aliases: [] },
+      { code: "RUB", zh: "俄罗斯卢布", en: "Russian Ruble", aliases: ["卢布"] },
+      { code: "INR", zh: "印度卢比", en: "Indian Rupee", aliases: [] },
+      { code: "KRW", zh: "韩元", en: "Korean Won", aliases: [] },
+      { code: "THB", zh: "泰铢", en: "Thai Baht", aliases: [] },
+      { code: "MYR", zh: "马来西亚林吉特", en: "Malaysian Ringgit", aliases: ["林吉特"] },
+      { code: "IDR", zh: "印尼盾", en: "Indonesian Rupiah", aliases: ["印尼卢比"] },
+      { code: "PHP", zh: "菲律宾比索", en: "Philippine Peso", aliases: [] },
+      { code: "VND", zh: "越南盾", en: "Vietnamese Dong", aliases: [] },
+      { code: "AED", zh: "阿联酋迪拉姆", en: "UAE Dirham", aliases: ["迪拉姆"] },
+      { code: "SAR", zh: "沙特里亚尔", en: "Saudi Riyal", aliases: ["里亚尔"] },
+      { code: "TRY", zh: "土耳其里拉", en: "Turkish Lira", aliases: ["里拉"] },
+      { code: "ZAR", zh: "南非兰特", en: "South African Rand", aliases: ["兰特"] },
+      { code: "BRL", zh: "巴西雷亚尔", en: "Brazilian Real", aliases: ["雷亚尔"] },
+      { code: "MXN", zh: "墨西哥比索", en: "Mexican Peso", aliases: [] },
+      { code: "ARS", zh: "阿根廷比索", en: "Argentine Peso", aliases: [] },
+      { code: "CLP", zh: "智利比索", en: "Chilean Peso", aliases: [] },
+      { code: "COP", zh: "哥伦比亚比索", en: "Colombian Peso", aliases: [] },
+      { code: "PEN", zh: "秘鲁索尔", en: "Peruvian Sol", aliases: [] },
+      { code: "EGP", zh: "埃及镑", en: "Egyptian Pound", aliases: [] },
+      { code: "NGN", zh: "尼日利亚奈拉", en: "Nigerian Naira", aliases: ["奈拉"] },
+      { code: "PKR", zh: "巴基斯坦卢比", en: "Pakistani Rupee", aliases: [] },
+      { code: "BDT", zh: "孟加拉塔卡", en: "Bangladeshi Taka", aliases: ["塔卡"] },
+      { code: "KZT", zh: "哈萨克斯坦坚戈", en: "Kazakhstani Tenge", aliases: ["坚戈"] },
+      { code: "UAH", zh: "乌克兰格里夫纳", en: "Ukrainian Hryvnia", aliases: ["格里夫纳"] },
+      { code: "IQD", zh: "伊拉克第纳尔", en: "Iraqi Dinar", aliases: ["第纳尔"] },
+      { code: "IRR", zh: "伊朗里亚尔", en: "Iranian Rial", aliases: [] }
+    ];
+
+    const baseInputEl = document.getElementById("baseInput");
+    const targetInputEl = document.getElementById("targetInput");
+    const baseBtnEl = document.getElementById("baseBtn");
+    const targetBtnEl = document.getElementById("targetBtn");
+    const baseListEl = document.getElementById("baseList");
+    const targetListEl = document.getElementById("targetList");
+    const amountEl = document.getElementById("amount");
+    const useFixedEl = document.getElementById("useFixed");
+    const fixedRateEl = document.getElementById("fixedRate");
+    const bankSourceEl = document.getElementById("bankSource");
+    const convertBtn = document.getElementById("convertBtn");
+    const resultBox = document.getElementById("resultBox");
+    const errorBox = document.getElementById("errorBox");
+    const fixedNoteEl = document.getElementById("fixedNote");
+
+    function fillCurrencies() {
+      baseInputEl.value = "USD";
+      targetInputEl.value = "CNY";
+      renderComboList(baseListEl, CURRENCIES, baseInputEl);
+      renderComboList(targetListEl, CURRENCIES, targetInputEl);
+    }
+
+    function parseCurrencyCode(raw) {
+      const text = (raw || "").trim();
+      if (!text) return "";
+      const upper = text.toUpperCase();
+      const direct = CURRENCIES.find((c) => c.code === upper);
+      if (direct) return direct.code;
+
+      const lower = text.toLowerCase();
+      for (const c of CURRENCIES) {
+        const candidates = [c.zh, c.en, c.code, ...(c.aliases || [])].map((x) => String(x).toLowerCase());
+        if (candidates.some((s) => s === lower || lower.includes(s) || s.includes(lower))) {
+          return c.code;
+        }
+      }
+      return "";
+    }
+
+    function currencyLabel(c) {
+      return `${c.zh} (${c.code})`;
+    }
+
+    function renderComboList(listEl, data, inputEl) {
+      listEl.innerHTML = "";
+      const frag = document.createDocumentFragment();
+      for (const c of data) {
+        const item = document.createElement("div");
+        item.className = "combo-item";
+        item.textContent = `${c.zh} (${c.code}) - ${c.en}`;
+        item.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          inputEl.value = currencyLabel(c);
+          listEl.style.display = "none";
+          updateFixedNote();
+        });
+        frag.appendChild(item);
+      }
+      listEl.appendChild(frag);
+    }
+
+    function filterCurrencies(keyword) {
+      const k = (keyword || "").trim().toLowerCase();
+      if (!k) return CURRENCIES;
+      return CURRENCIES.filter((c) => {
+        const bag = [c.code, c.zh, c.en, ...(c.aliases || [])].join("|").toLowerCase();
+        return bag.includes(k);
+      });
+    }
+
+    function bindCombo(inputEl, btnEl, listEl) {
+      btnEl.addEventListener("click", () => {
+        const row = inputEl.closest(".form-row");
+        const show = listEl.style.display !== "block";
+        if (show) {
+          // 点击下拉按钮时始终展示全部币种
+          renderComboList(listEl, CURRENCIES, inputEl);
+          listEl.style.display = "block";
+          row && row.classList.add("combo-open");
+        } else {
+          listEl.style.display = "none";
+          row && row.classList.remove("combo-open");
+        }
+      });
+      inputEl.addEventListener("input", () => {
+        const row = inputEl.closest(".form-row");
+        renderComboList(listEl, filterCurrencies(inputEl.value), inputEl);
+        listEl.style.display = "block";
+        row && row.classList.add("combo-open");
+        updateFixedNote();
+      });
+      inputEl.addEventListener("focus", () => {
+        const row = inputEl.closest(".form-row");
+        renderComboList(listEl, filterCurrencies(inputEl.value), inputEl);
+        listEl.style.display = "block";
+        row && row.classList.add("combo-open");
+      });
+      document.addEventListener("click", (e) => {
+        const row = inputEl.closest(".form-row");
+        if (!listEl.contains(e.target) && e.target !== inputEl && e.target !== btnEl) {
+          listEl.style.display = "none";
+          row && row.classList.remove("combo-open");
+        }
+      });
+    }
+
+    function getCurrencyCode(inputEl) {
+      return parseCurrencyCode(inputEl.value) || "";
+    }
+
+    function syncModeUI() {
+      const useFixed = useFixedEl.checked;
+      fixedRateEl.disabled = !useFixed;
+      bankSourceEl.disabled = useFixed;
+      fixedNoteEl.style.display = useFixed ? "block" : "none";
+      updateFixedNote();
+    }
+
+    function updateFixedNote() {
+      const rate = Number(fixedRateEl.value || 0);
+      const rateText = Number.isFinite(rate) && rate > 0 ? rate : 0;
+      const baseCode = getCurrencyCode(baseInputEl) || "?";
+      const targetCode = getCurrencyCode(targetInputEl) || "?";
+      fixedNoteEl.textContent = `1 ${baseCode} = ${rateText} ${targetCode}`;
+    }
+
+    function showError(msg) {
+      errorBox.style.display = "block";
+      errorBox.textContent = msg;
+    }
+
+    function clearError() {
+      errorBox.style.display = "none";
+      errorBox.textContent = "";
+    }
+
+    function renderResult(d) {
+      resultBox.textContent =
+`模式：${d.mode}
+来源：${d.source}
+换算：${Number(d.amount).toFixed(2)} ${d.base} = ${Number(d.converted).toFixed(4)} ${d.target}
+使用汇率：1 ${d.base} = ${d.rate} ${d.target}
+更新时间：${d.updated_at}
+说明：${d.note}`;
+    }
+
+    async function convert() {
+      clearError();
+      const payload = {
+        base: getCurrencyCode(baseInputEl),
+        target: getCurrencyCode(targetInputEl),
+        amount: Number(amountEl.value),
+        use_fixed_rate: useFixedEl.checked,
+        fixed_rate: Number(fixedRateEl.value || 0),
+        bank_source: bankSourceEl.value
+      };
+
+      if (!payload.base) return showError("无法识别待计算币种，请输入代码或中文名（如 USD / 美元 / 人民币）。");
+      if (!payload.target) return showError("无法识别目标币种，请输入代码或中文名（如 CNY / 人民币 / 美元）。");
+      if (!payload.amount || payload.amount <= 0) return showError("金额必须大于 0。");
+      if (payload.base === payload.target) return showError("待计算币种和目标币种不能相同。");
+      if (payload.use_fixed_rate && payload.fixed_rate <= 0) return showError("固定汇率必须大于 0。");
+
+      convertBtn.disabled = true;
+      convertBtn.textContent = "计算中...";
+      resultBox.textContent = "正在计算，请稍候...";
+
+      try {
+        const resp = await fetch("/api/convert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "请求失败");
+        renderResult(data);
+      } catch (e) {
+        showError(e.message || "网络异常，请稍后重试。");
+        resultBox.textContent = "计算失败。";
+      } finally {
+        convertBtn.disabled = false;
+        convertBtn.textContent = "立即换算";
+      }
+    }
+
+    fillCurrencies();
+    bindCombo(baseInputEl, baseBtnEl, baseListEl);
+    bindCombo(targetInputEl, targetBtnEl, targetListEl);
+    syncModeUI();
+    useFixedEl.addEventListener("change", syncModeUI);
+    fixedRateEl.addEventListener("input", updateFixedNote);
+    baseInputEl.addEventListener("change", updateFixedNote);
+    targetInputEl.addEventListener("change", updateFixedNote);
+    convertBtn.addEventListener("click", convert);
+  </script>
+</body>
+</html>

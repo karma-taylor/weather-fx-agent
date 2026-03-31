@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>汇率换算 Agent（Web）</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --border: #d1d5db;
+      --ok: #065f46;
+      --ok-bg: #ecfdf5;
+      --warn: #991b1b;
+      --warn-bg: #fef2f2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    }
+    h1 {
+      margin: 0 0 18px;
+      font-size: 22px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 180px 1fr 140px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    label { font-weight: 600; }
+    input, select, button {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    button {
+      width: auto;
+      cursor: pointer;
+      border: none;
+      color: #fff;
+      background: var(--primary);
+    }
+    button:hover { background: var(--primary-hover); }
+    button.secondary {
+      background: #374151;
+    }
+    button.ghost {
+      background: #6b7280;
+    }
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .result-box {
+      margin-top: 18px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      background: #fafafa;
+      min-height: 120px;
+      white-space: pre-line;
+      line-height: 1.7;
+    }
+    .status-ok {
+      background: var(--ok-bg);
+      color: var(--ok);
+      border: 1px solid #a7f3d0;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .status-err {
+      background: var(--warn-bg);
+      color: var(--warn);
+      border: 1px solid #fecaca;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .quick {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .quick button {
+      background: #e5e7eb;
+      color: #111827;
+      border: 1px solid #d1d5db;
+    }
+    .quick button:hover {
+      background: #dbeafe;
+      border-color: #93c5fd;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>汇率换算 Agent（Web）</h1>
+
+      <div class="row">
+        <label for="base">待计算币种 (Base)</label>
+        <select id="base">
+          <option>USD</option>
+          <option>CNY</option>
+          <option>EUR</option>
+          <option>JPY</option>
+          <option>IQD</option>
+        </select>
+        <input id="amount" type="number" min="0" step="0.01" value="1000.00" />
+      </div>
+
+      <div class="row">
+        <label for="target">目标币种 (Target)</label>
+        <select id="target">
+          <option>CNY</option>
+          <option>USD</option>
+          <option>EUR</option>
+          <option>JPY</option>
+          <option>IQD</option>
+        </select>
+        <div></div>
+      </div>
+
+      <div class="actions">
+        <button id="calcBtn">查询汇率并换算</button>
+        <button class="secondary" id="swapBtn">交换币种</button>
+        <button class="ghost" id="clearBtn">清空</button>
+      </div>
+
+      <div class="hint">提示：支持常见货币代码，如 USD / CNY / EUR / JPY / IQD</div>
+
+      <div class="result-box" id="resultBox">
+        计算结果将显示在这里...
+      </div>
+
+      <div class="quick">
+        <button data-base="USD" data-target="CNY">USD→CNY</button>
+        <button data-base="CNY" data-target="USD">CNY→USD</button>
+        <button data-base="EUR" data-target="CNY">EUR→CNY</button>
+        <button data-base="JPY" data-target="CNY">JPY→CNY</button>
+        <button data-base="CNY" data-target="IQD">CNY→IQD</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const base = document.getElementById("base");
+    const target = document.getElementById("target");
+    const amount = document.getElementById("amount");
+    const calcBtn = document.getElementById("calcBtn");
+    const swapBtn = document.getElementById("swapBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const resultBox = document.getElementById("resultBox");
+
+    const demoRates = {
+      "USD_CNY": 7.2453,
+      "CNY_USD": 0.1380,
+      "EUR_CNY": 7.8600,
+      "JPY_CNY": 0.0482,
+      "CNY_IQD": 189.4701
+    };
+
+    function nowString() {
+      return new Date().toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function renderError(text) {
+      resultBox.textContent = `[错误] ${text}\n示例：USD -> CNY, CNY -> IQD`;
+    }
+
+    function renderLoading() {
+      resultBox.textContent = "正在获取最新汇率，请稍候...";
+    }
+
+    function renderResult(rate, converted) {
+      const a = Number(amount.value || 0).toFixed(2);
+      resultBox.textContent =
+        `换算结果： ${a} ${base.value} = ${converted.toFixed(4)} ${target.value}\n` +
+        `实时汇率： 1 ${base.value} = ${rate} ${target.value}\n` +
+        `更新时间： ${nowString()} (本地时间)\n` +
+        `数据来源： open.er-api (演示页面为本地模拟)`;
+    }
+
+    calcBtn.addEventListener("click", () => {
+      const a = Number(amount.value);
+      if (!base.value || !target.value) return renderError("请选择币种。");
+      if (!Number.isFinite(a) || a <= 0) return renderError("金额必须大于 0。");
+      if (base.value === target.value) return renderError("待计算币种和目标币种不能相同。");
+
+      renderLoading();
+      calcBtn.disabled = true;
+      calcBtn.textContent = "查询汇率并换算...";
+
+      setTimeout(() => {
+        const key = `${base.value}_${target.value}`;
+        const rate = demoRates[key];
+        if (!rate) {
+          renderError("暂未配置该币种对，请先用快捷币种组合。");
+        } else {
+          renderResult(rate, a * rate);
+        }
+        calcBtn.disabled = false;
+        calcBtn.textContent = "查询汇率并换算";
+      }, 700);
+    });
+
+    swapBtn.addEventListener("click", () => {
+      const temp = base.value;
+      base.value = target.value;
+      target.value = temp;
+    });
+
+    clearBtn.addEventListener("click", () => {
+      amount.value = "";
+      resultBox.textContent = "计算结果将显示在这里...";
+    });
+
+    document.querySelectorAll(".quick button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        base.value = btn.dataset.base;
+        target.value = btn.dataset.target;
+      });
+    });
+  </script>
+</body>
+</html>
