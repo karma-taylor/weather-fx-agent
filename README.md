@@ -1,13 +1,14 @@
 # weather-fx-agent
 
-一个支持天气与汇率查询的 Agent 项目，并提供可分享的网页界面。
+A simple FX converter web app with optional fixed-rate mode and bank source selection.
 
-## 功能
-- 天气查询（Open-Meteo）
-- 汇率查询（open.er-api）
-- 网页汇率换算（固定汇率 / 网络汇率来源）
+## Features
+- Currency conversion using live market rate
+- Optional fixed-rate conversion
+- Bank source selector (for display and adjustment logic)
+- Web UI for colleagues
 
-## 本地运行（网页）
+## Run locally
 ```powershell
 cd E:\ai\weather-fx-agent
 python -m venv .venv
@@ -16,13 +17,14 @@ pip install -r requirements.txt
 start_web.bat
 ```
 
-启动后访问：
+Open:
 - `http://127.0.0.1:8000`
 
-## API 调用
-`POST /api/convert`
+## API
+Endpoint:
+- `POST /api/convert`
 
-示例请求体：
+Example payload:
 ```json
 {
   "base": "USD",
