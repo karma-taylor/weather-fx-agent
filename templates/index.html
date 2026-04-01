@@ -146,18 +146,19 @@
     .mini-icon-btn:hover { background: #eef2ff; }
     .result-split {
       margin-top: 16px; border: 1px solid #d5dce7; border-radius: 10px; background: #fafcff;
-      padding: 14px; min-height: 220px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; align-items: start;
+      padding: 14px; min-height: 260px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; align-items: stretch;
     }
-    .result-pane { border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; padding: 10px; min-height: 184px; }
+    .result-pane { border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; padding: 10px; min-height: 220px; height: 100%; }
     .chart-pane { display: flex; flex-direction: column; }
-    .result-text { white-space: pre-line; line-height: 1.7; min-height: 160px; }
+    .result-text { white-space: pre-line; line-height: 1.7; min-height: 160px; height: 100%; }
     .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
     .chart-head select { width: auto; min-width: 84px; padding: 6px 8px; font-size: 13px; }
+    .chart-hover { font-size: 12px; color: #334155; min-height: 18px; margin-bottom: 6px; }
     .ascii-wrap { position: relative; flex: 1 1 auto; min-height: 0; }
     .ascii-chart {
       margin: 0; font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 1.25;
       white-space: pre; user-select: none; cursor: crosshair; background: #f8fafc;
-      border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; overflow: auto; height: 100%;
+      border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; overflow: auto; height: 100%; width: 100%;
     }
     .chart-loading {
       position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
@@ -279,6 +280,7 @@
               <option value="90">90天</option>
             </select>
           </div>
+          <div id="chartHover" class="chart-hover"></div>
           <div class="ascii-wrap">
             <pre class="ascii-chart" id="rateChart">请选择币种后将自动加载图表...</pre>
             <div class="chart-loading" id="chartLoading">
@@ -431,6 +433,7 @@
     const saveDefaultFixedBtn = document.getElementById("saveDefaultFixedBtn");
     const bankSourceEl = document.getElementById("bankSource");
     const chartDaysEl = document.getElementById("chartDays");
+    const chartHoverEl = document.getElementById("chartHover");
     const rateChartEl = document.getElementById("rateChart");
     const chartLoadingEl = document.getElementById("chartLoading");
     const convertBtn = document.getElementById("convertBtn");
@@ -579,12 +582,20 @@
       if (!series.length) {
         return { html: "暂无图表数据。", points: [] };
       }
-      const rows = 10;
-      const cols = Math.min(56, Math.max(24, series.length));
+      const rows = 16;
+      const cols = 96;
       const sampled = [];
+      const n = series.length;
       for (let i = 0; i < cols; i++) {
-        const idx = Math.round(i * (series.length - 1) / (cols - 1));
-        sampled.push({ ...series[idx], origIndex: idx });
+        const t = (i * (n - 1)) / (cols - 1);
+        const i0 = Math.floor(t);
+        const i1 = Math.min(n - 1, i0 + 1);
+        const w = t - i0;
+        const r0 = Number(series[i0].rate);
+        const r1 = Number(series[i1].rate);
+        const interpRate = r0 + (r1 - r0) * w;
+        const date = w < 0.5 ? series[i0].date : series[i1].date;
+        sampled.push({ date, rate: interpRate, origIndex: i0 });
       }
       const rates = sampled.map((x) => x.rate);
       let min = Math.min(...rates);
@@ -678,6 +689,7 @@
       rateChartEl.dataset.bank = bankSourceEl.value;
       rateChartEl.dataset.days = chartDaysEl.value;
       rateChartEl._chartPoints = built.points;
+      chartHoverEl.textContent = "";
     }
 
     async function refreshRateChart() {
@@ -807,9 +819,9 @@
       const idx = Math.round((x / rect.width) * (points.length - 1));
       const p = points[idx];
       if (!p) return;
-      rateChartEl.title = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${rateChartEl.dataset.bank} · ${rateChartEl.dataset.days}天 · ${p.date} 汇率=${Number(p.rate).toFixed(6)}`;
+      chartHoverEl.textContent = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${rateChartEl.dataset.bank} · ${rateChartEl.dataset.days}天 · ${p.date} 汇率=${Number(p.rate).toFixed(6)}`;
     });
-    rateChartEl.addEventListener("mouseleave", () => { rateChartEl.title = ""; });
+    rateChartEl.addEventListener("mouseleave", () => { chartHoverEl.textContent = ""; });
     convertBtn.addEventListener("click", convert);
     refreshRateChart();
     if (historyToggle.checked) renderHistoryList();
