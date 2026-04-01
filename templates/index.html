@@ -183,11 +183,11 @@
     .chart-pane {
       display: flex;
       flex-direction: column;
-      min-height: 140px;
-      max-height: 220px;
-      height: auto;
-      align-self: start;
-      margin-bottom: 10px;
+      min-height: 180px;
+      max-height: none;
+      height: 100%;
+      align-self: stretch;
+      margin-bottom: 0;
     }
     .result-text {
       white-space: pre-line;
@@ -205,9 +205,9 @@
     .ascii-wrap {
       position: relative;
       flex: 1 1 auto;
-      min-height: 240px;
-      height: calc(100% - 10px);
-      margin-bottom: 10px;
+      min-height: 0;
+      height: 100%;
+      margin-bottom: 0;
     }
     .chart-stage {
       position: relative;
@@ -216,7 +216,7 @@
       background: #f8fafc;
       width: 100%;
       height: 100%;
-      min-height: 240px;
+      min-height: 0;
       overflow: hidden;
     }
     .chart-svg { width: 100%; height: 100%; display: block; cursor: crosshair; }
@@ -280,8 +280,8 @@
       .result-split { grid-template-columns: 1fr; min-height: auto; }
       .result-pane { min-height: 180px; padding: 10px; margin-bottom: 0; }
       .result-pane-left { height: auto; min-height: 160px; }
-      .chart-pane { min-height: 120px; max-height: 180px; }
-      .ascii-wrap { height: auto; margin-bottom: 10px; }
+      .chart-pane { min-height: 160px; max-height: none; }
+      .ascii-wrap { height: 100%; margin-bottom: 0; }
       #convertBtn { min-width: 180px; width: 70%; }
     }
   </style>
@@ -369,7 +369,7 @@
             </div>
             <div class="ascii-wrap">
               <div class="chart-stage" id="rateChartStage">
-                <svg class="chart-svg" id="rateChart" viewBox="0 0 1000 420" preserveAspectRatio="none"></svg>
+                <svg class="chart-svg" id="rateChart" viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet"></svg>
                 <div id="chartTooltip" class="chart-tooltip"></div>
                 <div class="chart-loading" id="chartLoading">
                   <div class="spinner"></div>
@@ -722,7 +722,7 @@
       const w = Math.max(320, rateChartStageEl.clientWidth);
       const h = Math.max(220, rateChartStageEl.clientHeight);
       rateChartEl.setAttribute("viewBox", `0 0 ${w} ${h}`);
-      const pad = { l: 56, r: 20, t: 18, b: 28 };
+      const pad = { l: 64, r: 28, t: 28, b: 36 };
       const innerW = w - pad.l - pad.r;
       const innerH = h - pad.t - pad.b;
 
