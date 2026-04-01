@@ -145,31 +145,23 @@
     }
     .mini-icon-btn:hover { background: #eef2ff; }
     .result-split {
-      margin-top: 16px; border: 1px solid #d5dce7; border-radius: 10px; background: #fff;
-      padding: 12px; min-height: 350px; display: grid; grid-template-columns: 4fr 6fr; gap: 12px; align-items: stretch;
+      margin-top: 16px; border: 1px solid #d5dce7; border-radius: 10px; background: #f8fafc;
+      padding: 10px; min-height: 360px; display: grid; grid-template-columns: 4fr 6fr; gap: 10px; align-items: stretch;
     }
     .result-pane {
-      border: 1px solid #e5e7eb; border-radius: 8px; background: #fcfdff;
-      padding: 10px; min-height: 320px; height: 100%; display: flex; flex-direction: column;
+      border: 1px solid #dbe4f2; border-radius: 8px; background: #fff;
+      padding: 10px; min-height: 340px; height: 100%; display: flex; flex-direction: column;
     }
-    .chart-pane { display: flex; flex-direction: column; }
+    .chart-pane { display: flex; flex-direction: column; min-height: 340px; }
     .result-text { white-space: pre-line; line-height: 1.7; flex: 1 1 auto; }
-    .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
     .chart-head select { width: auto; min-width: 84px; padding: 6px 8px; font-size: 13px; }
-    .chart-meta {
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-    .meta-pill {
-      font-size: 11px; line-height: 1; padding: 5px 8px; border-radius: 999px;
-      border: 1px solid #dbe4f2; background: #f3f7ff; color: #334155;
-    }
-    .chart-hover { font-size: 12px; color: #334155; min-height: 18px; margin-bottom: 6px; }
-    .ascii-wrap { position: relative; flex: 1 1 auto; min-height: 0; }
+    .chart-hover { font-size: 12px; color: #334155; min-height: 18px; margin-bottom: 8px; }
+    .ascii-wrap { position: relative; flex: 1 1 auto; min-height: 240px; height: 100%; }
     .ascii-chart {
       margin: 0; font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 1.25;
       white-space: pre; user-select: none; cursor: crosshair; background: #f8fafc;
-      border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; overflow: auto; height: 100%; width: 100%;
+      border: 1px solid #93c5fd; border-radius: 6px; padding: 8px; overflow: auto; height: 100%; width: 100%;
     }
     .chart-loading {
       position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
@@ -291,11 +283,6 @@
               <option value="30" selected>30天</option>
               <option value="90">90天</option>
             </select>
-          </div>
-          <div class="chart-meta">
-            <span class="meta-pill" id="metaPair">币种对: -/-</span>
-            <span class="meta-pill" id="metaBank">银行: -</span>
-            <span class="meta-pill" id="metaDays">周期: 30天</span>
           </div>
           <div id="chartHover" class="chart-hover"></div>
           <div class="ascii-wrap">
@@ -451,9 +438,6 @@
     const bankSourceEl = document.getElementById("bankSource");
     const chartDaysEl = document.getElementById("chartDays");
     const chartHoverEl = document.getElementById("chartHover");
-    const metaPairEl = document.getElementById("metaPair");
-    const metaBankEl = document.getElementById("metaBank");
-    const metaDaysEl = document.getElementById("metaDays");
     const rateChartEl = document.getElementById("rateChart");
     const chartLoadingEl = document.getElementById("chartLoading");
     const convertBtn = document.getElementById("convertBtn");
@@ -709,9 +693,6 @@
       rateChartEl.dataset.bank = bankSourceEl.value;
       rateChartEl.dataset.days = chartDaysEl.value;
       rateChartEl._chartPoints = built.points;
-      metaPairEl.textContent = `币种对: ${rateChartEl.dataset.base}/${rateChartEl.dataset.target}`;
-      metaBankEl.textContent = `银行: ${rateChartEl.dataset.bank}`;
-      metaDaysEl.textContent = `周期: ${rateChartEl.dataset.days}天`;
       chartHoverEl.textContent = "";
     }
 
