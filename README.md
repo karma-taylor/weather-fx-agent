@@ -64,3 +64,10 @@ Monthly Excel:
 - Auto: run at day 1 each month, export previous month file
 - Manual create: `POST /api/visits/export/monthly/{YYYY-MM}`
 - Download: `GET /api/visits/export/monthly/{YYYY-MM}/download`
+
+## Update Log
+
+### 2026-04-01
+- Added client-side conversion history panel (`localStorage`) with a toggle switch.
+- Added history clear action and responsive two-pane layout (stacks on small screens).
+- Added no-cache headers for `/` in `webapp.py` to reduce stale HTML after deploy.
