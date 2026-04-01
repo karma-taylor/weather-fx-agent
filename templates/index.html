@@ -146,23 +146,29 @@
     .mini-icon-btn:hover { background: #eef2ff; }
     .result-split {
       margin-top: 16px; border: 1px solid #d5dce7; border-radius: 10px; background: #f8fafc;
-      padding: 10px; min-height: 360px; display: grid; grid-template-columns: 4fr 6fr; gap: 10px; align-items: stretch;
+      padding: 10px; min-height: 310px; display: grid; grid-template-columns: 4fr 6fr; gap: 10px; align-items: stretch;
     }
     .result-pane {
       border: 1px solid #dbe4f2; border-radius: 8px; background: #fff;
-      padding: 10px; min-height: 340px; height: 100%; display: flex; flex-direction: column;
+      padding: 10px; min-height: 0; height: 100%; display: flex; flex-direction: column;
     }
-    .chart-pane { display: flex; flex-direction: column; min-height: 340px; }
+    .chart-pane { display: flex; flex-direction: column; min-height: 0; }
     .result-text { white-space: pre-line; line-height: 1.7; flex: 1 1 auto; }
     .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
     .chart-head select { width: auto; min-width: 84px; padding: 6px 8px; font-size: 13px; }
     .chart-hover { font-size: 12px; color: #334155; min-height: 18px; margin-bottom: 8px; }
     .ascii-wrap { position: relative; flex: 1 1 auto; min-height: 240px; height: 100%; }
-    .ascii-chart {
-      margin: 0; font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 1.25;
-      white-space: pre; user-select: none; cursor: crosshair; background: #f8fafc;
-      border: 1px solid #93c5fd; border-radius: 6px; padding: 8px; overflow: auto; height: 100%; width: 100%;
+    .chart-stage {
+      position: relative;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      background: #f8fafc;
+      width: 100%;
+      height: 100%;
+      min-height: 240px;
+      overflow: hidden;
     }
+    .chart-svg { width: 100%; height: 100%; display: block; cursor: crosshair; }
     .chart-loading {
       position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
       gap: 8px; background: rgba(255, 255, 255, 0.65); border-radius: 6px; color: #334155; font-size: 13px;
@@ -286,7 +292,9 @@
           </div>
           <div id="chartHover" class="chart-hover"></div>
           <div class="ascii-wrap">
-            <pre class="ascii-chart" id="rateChart">请选择币种后将自动加载图表...</pre>
+            <div class="chart-stage" id="rateChartStage">
+              <svg class="chart-svg" id="rateChart" viewBox="0 0 1000 420" preserveAspectRatio="none"></svg>
+            </div>
             <div class="chart-loading" id="chartLoading">
               <div class="spinner"></div>
               <div>Loading...</div>
@@ -439,6 +447,7 @@
     const chartDaysEl = document.getElementById("chartDays");
     const chartHoverEl = document.getElementById("chartHover");
     const rateChartEl = document.getElementById("rateChart");
+    const rateChartStageEl = document.getElementById("rateChartStage");
     const chartLoadingEl = document.getElementById("chartLoading");
     const convertBtn = document.getElementById("convertBtn");
     const resultBox = document.getElementById("resultBox");
@@ -582,117 +591,76 @@
       chartLoadingEl.style.display = loading ? "flex" : "none";
     }
 
-    function buildAsciiChart(series, opts) {
-      if (!series.length) {
-        return { html: "暂无图表数据。", points: [] };
-      }
-      const rows = 16;
-      const cols = 96;
-      const sampled = [];
-      const n = series.length;
-      for (let i = 0; i < cols; i++) {
-        const t = (i * (n - 1)) / (cols - 1);
-        const i0 = Math.floor(t);
-        const i1 = Math.min(n - 1, i0 + 1);
-        const w = t - i0;
-        const r0 = Number(series[i0].rate);
-        const r1 = Number(series[i1].rate);
-        const interpRate = r0 + (r1 - r0) * w;
-        const date = w < 0.5 ? series[i0].date : series[i1].date;
-        sampled.push({ date, rate: interpRate, origIndex: i0 });
-      }
-      const rates = sampled.map((x) => x.rate);
-      let min = Math.min(...rates);
-      let max = Math.max(...rates);
-      if (max === min) {
-        max += 0.000001;
-        min -= 0.000001;
-      }
-      const grid = Array.from({ length: rows }, () => Array(cols).fill(" "));
-      const rowOf = (v) => {
-        const p = (v - min) / (max - min);
-        return Math.max(0, Math.min(rows - 1, Math.round((1 - p) * (rows - 1))));
-      };
-      const plot = (x, y, ch) => {
-        if (x < 0 || x >= cols || y < 0 || y >= rows) return;
-        grid[y][x] = ch;
-      };
-      for (let x = 0; x < sampled.length - 1; x++) {
-        const y1 = rowOf(sampled[x].rate);
-        const y2 = rowOf(sampled[x + 1].rate);
-        const dy = y2 - y1;
-        if (dy === 0) {
-          plot(x, y1, "─");
-          plot(x + 1, y2, "─");
-        } else if (Math.abs(dy) === 1) {
-          plot(x, y1, dy > 0 ? "╲" : "╱");
-          plot(x + 1, y2, dy > 0 ? "╲" : "╱");
-        } else {
-          const step = dy > 0 ? 1 : -1;
-          let y = y1;
-          plot(x, y1, step > 0 ? "╲" : "╱");
-          while (y !== y2) {
-            y += step;
-            plot(x, y, "│");
-          }
-          plot(x + 1, y2, step > 0 ? "╲" : "╱");
-        }
-      }
-
-      let maxIdx = 0;
-      let minIdx = 0;
-      sampled.forEach((pt, i) => {
-        if (pt.rate > sampled[maxIdx].rate) maxIdx = i;
-        if (pt.rate < sampled[minIdx].rate) minIdx = i;
-      });
-      grid[rowOf(sampled[maxIdx].rate)][maxIdx] = "H";
-      grid[rowOf(sampled[minIdx].rate)][minIdx] = "L";
-
-      let fixedRow = -1;
-      if (opts.useFixed && opts.fixedRate > 0) {
-        const fy = rowOf(opts.fixedRate);
-        fixedRow = fy;
-        for (let x = 0; x < cols; x++) {
-          if (grid[fy][x] === " ") grid[fy][x] = "-";
-        }
-      }
-
-      const lines = [];
-      for (let y = 0; y < rows; y++) {
-        const label = (max - ((max - min) * y) / (rows - 1)).toFixed(4).padStart(8, " ");
-        const line = `${label} | ${grid[y].join("")}`;
-        if (y === fixedRow) {
-          lines.push(`<span style="color:#dc2626">${line}</span>`);
-        } else {
-          lines.push(line);
-        }
-      }
-      const leftDate = sampled[0].date.slice(5);
-      const midDate = sampled[Math.floor(sampled.length / 2)].date.slice(5);
-      const rightDate = sampled[sampled.length - 1].date.slice(5);
-      lines.push(`         + ${"_".repeat(cols)}`);
-      lines.push(`           ${leftDate.padEnd(Math.max(0, Math.floor(cols / 2) - 5), " ")}${midDate.padEnd(Math.max(0, Math.floor(cols / 2) - 5), " ")}${rightDate}`);
-      if (opts.useFixed && opts.fixedRate > 0) {
-        lines.push(`           - - - 固定汇率参考线: ${opts.fixedRate}`);
-      }
-      lines.push("           H=最高点  L=最低点");
-      return { html: lines.join("\n"), points: sampled };
+    function renderChartMessage(msg) {
+      rateChartEl.innerHTML = `<text x="20" y="40" fill="#64748b" font-size="16">${msg}</text>`;
+      rateChartEl._chartPoints = [];
     }
 
     function renderChart() {
       const base = getCurrencyCode(baseInputEl);
       const target = getCurrencyCode(targetInputEl);
       const fixedRate = Number(fixedRateEl.value || 0);
-      const built = buildAsciiChart(chartSeries, {
-        useFixed: useFixedEl.checked,
-        fixedRate: fixedRate,
+      if (!chartSeries.length) {
+        renderChartMessage("暂无图表数据。");
+        return;
+      }
+      const w = Math.max(600, rateChartStageEl.clientWidth);
+      const h = Math.max(260, rateChartStageEl.clientHeight);
+      rateChartEl.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      const pad = { l: 56, r: 20, t: 18, b: 28 };
+      const innerW = w - pad.l - pad.r;
+      const innerH = h - pad.t - pad.b;
+
+      const raw = chartSeries.slice();
+      const maxPoints = Math.min(180, Math.max(40, Math.floor(innerW / 4)));
+      const sampled = [];
+      for (let i = 0; i < maxPoints; i++) {
+        const idx = Math.round((i * (raw.length - 1)) / (maxPoints - 1));
+        sampled.push(raw[idx]);
+      }
+      const rates = sampled.map((x) => Number(x.rate));
+      let min = Math.min(...rates);
+      let max = Math.max(...rates);
+      if (max === min) { max += 1e-6; min -= 1e-6; }
+      const xOf = (i) => pad.l + (i / (sampled.length - 1)) * innerW;
+      const yOf = (v) => pad.t + (1 - (v - min) / (max - min)) * innerH;
+
+      const pts = sampled.map((p, i) => ({ x: xOf(i), y: yOf(Number(p.rate)), date: p.date, rate: Number(p.rate) }));
+      let d = `M ${pts[0].x} ${pts[0].y}`;
+      for (let i = 1; i < pts.length - 1; i++) {
+        const xc = (pts[i].x + pts[i + 1].x) / 2;
+        const yc = (pts[i].y + pts[i + 1].y) / 2;
+        d += ` Q ${pts[i].x} ${pts[i].y}, ${xc} ${yc}`;
+      }
+      const last = pts[pts.length - 1];
+      d += ` T ${last.x} ${last.y}`;
+
+      let maxIdx = 0, minIdx = 0;
+      pts.forEach((p, i) => {
+        if (p.rate > pts[maxIdx].rate) maxIdx = i;
+        if (p.rate < pts[minIdx].rate) minIdx = i;
       });
-      rateChartEl.innerHTML = built.html;
+
+      const fixedLine = (useFixedEl.checked && fixedRate > 0)
+        ? `<line x1="${pad.l}" y1="${yOf(fixedRate)}" x2="${w - pad.r}" y2="${yOf(fixedRate)}" stroke="#dc2626" stroke-dasharray="6 5" stroke-width="1.5" />`
+        : "";
+
+      rateChartEl.innerHTML = `
+        <rect x="0" y="0" width="${w}" height="${h}" fill="#f8fafc"></rect>
+        <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${h - pad.b}" stroke="#94a3b8" stroke-width="1"/>
+        <line x1="${pad.l}" y1="${h - pad.b}" x2="${w - pad.r}" y2="${h - pad.b}" stroke="#94a3b8" stroke-width="1"/>
+        ${fixedLine}
+        <path d="${d}" fill="none" stroke="#334155" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+        <circle cx="${pts[maxIdx].x}" cy="${pts[maxIdx].y}" r="4" fill="#2563eb"></circle>
+        <text x="${pts[maxIdx].x + 6}" y="${pts[maxIdx].y - 6}" fill="#1e40af" font-size="12">H</text>
+        <circle cx="${pts[minIdx].x}" cy="${pts[minIdx].y}" r="4" fill="#16a34a"></circle>
+        <text x="${pts[minIdx].x + 6}" y="${pts[minIdx].y + 14}" fill="#166534" font-size="12">L</text>
+      `;
       rateChartEl.dataset.base = base || "?";
       rateChartEl.dataset.target = target || "?";
       rateChartEl.dataset.bank = bankSourceEl.value;
       rateChartEl.dataset.days = chartDaysEl.value;
-      rateChartEl._chartPoints = built.points;
+      rateChartEl._chartPoints = pts;
       chartHoverEl.textContent = "";
     }
 
@@ -701,7 +669,7 @@
       const target = getCurrencyCode(targetInputEl);
       if (!base || !target || base === target) {
         chartSeries = [];
-        rateChartEl.textContent = "请选择有效且不同的币种后显示图表。";
+        renderChartMessage("请选择有效且不同的币种后显示图表。");
         return;
       }
       setChartLoading(true);
@@ -713,7 +681,7 @@
         renderChart();
       } catch (e) {
         chartSeries = [];
-        rateChartEl.textContent = `图表加载失败：${e.message || "未知错误"}`;
+        renderChartMessage(`图表加载失败：${e.message || "未知错误"}`);
       } finally {
         setChartLoading(false);
       }
@@ -826,6 +794,9 @@
       chartHoverEl.textContent = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${rateChartEl.dataset.bank} · ${rateChartEl.dataset.days}天 · ${p.date} 汇率=${Number(p.rate).toFixed(6)}`;
     });
     rateChartEl.addEventListener("mouseleave", () => { chartHoverEl.textContent = ""; });
+    window.addEventListener("resize", () => {
+      if (chartSeries.length) renderChart();
+    });
     convertBtn.addEventListener("click", convert);
     refreshRateChart();
     if (historyToggle.checked) renderHistoryList();
