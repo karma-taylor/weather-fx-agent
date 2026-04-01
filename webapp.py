@@ -259,6 +259,30 @@ def fetch_market_rate(base: str, target: str) -> float:
     return float(rate)
 
 
+def fetch_historical_rates(base: str, target: str, days: int):
+    end_date = datetime.utcnow().date()
+    start_date = end_date - timedelta(days=days - 1)
+    if base == target:
+        series = []
+        for i in range(days):
+            d = start_date + timedelta(days=i)
+            series.append({"date": d.isoformat(), "rate": 1.0})
+        return series
+
+    url = f"https://api.frankfurter.app/{start_date.isoformat()}..{end_date.isoformat()}"
+    resp = requests.get(url, params={"from": base, "to": target}, timeout=12)
+    resp.raise_for_status()
+    data = resp.json()
+    rates_map = data.get("rates") or {}
+    series = []
+    for date_str in sorted(rates_map.keys()):
+        one_day = rates_map.get(date_str) or {}
+        rate = one_day.get(target)
+        if isinstance(rate, (int, float)):
+            series.append({"date": date_str, "rate": float(rate)})
+    return series
+
+
 @app.get("/", response_class=HTMLResponse)
 def home():
     """Serve calculator page; disable caching so template updates show without stale HTML."""
@@ -276,6 +300,37 @@ def home():
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
+
+
+@app.get("/api/rates/history")
+def rates_history(base: str, target: str, days: int = 30, bank_source: str = "中国银行"):
+    base = base.upper().strip()
+    target = target.upper().strip()
+    if days not in (7, 30, 90):
+        raise HTTPException(status_code=400, detail="days 仅支持 7 / 30 / 90。")
+    if len(base) != 3 or len(target) != 3:
+        raise HTTPException(status_code=400, detail="base/target 必须是 3 位币种代码。")
+    if bank_source not in BANK_RATE_MULTIPLIER:
+        raise HTTPException(status_code=400, detail="不支持的银行来源。")
+
+    try:
+        series = fetch_historical_rates(base, target, days)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"获取历史汇率失败：{e}") from e
+
+    multiplier = BANK_RATE_MULTIPLIER[bank_source]
+    adjusted = [{"date": p["date"], "rate": round(p["rate"] * multiplier, 6)} for p in series]
+    values = [x["rate"] for x in adjusted]
+    return {
+        "ok": True,
+        "base": base,
+        "target": target,
+        "days": days,
+        "source": bank_source,
+        "series": adjusted,
+        "min_rate": min(values) if values else None,
+        "max_rate": max(values) if values else None,
+    }
 
 
 @app.get("/api/visits/today")
