@@ -155,9 +155,17 @@
       padding: 10px;
       overflow: hidden;
       box-sizing: border-box;
+      min-height: 420px;
+      display: flex;
     }
     .result-split {
-      min-height: 310px; display: grid; grid-template-columns: 4fr 6fr; gap: 10px; align-items: stretch;
+      flex: 1 1 auto;
+      height: 100%;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 4fr 6fr;
+      gap: 10px;
+      align-items: stretch;
     }
     .result-pane {
       border: 1px solid #dbe4f2; border-radius: 8px; background: #fff;
@@ -235,7 +243,7 @@
       .fixed-rate-wrap { width: 100%; justify-self: stretch; }
       .fixed-rate-wrap .right-field { width: 100%; }
       .history-switch-wrap { position: static; transform: none; }
-      .output-shell { padding: 8px; }
+      .output-shell { padding: 8px; min-height: 340px; }
       .result-split { grid-template-columns: 1fr; min-height: auto; }
       .result-pane { min-height: 240px; }
       #convertBtn { min-width: 180px; width: 70%; }
@@ -857,18 +865,36 @@
     rateChartEl.addEventListener("mousemove", (e) => {
       const points = rateChartEl._chartPoints || [];
       if (!points.length) return;
-      const rect = rateChartEl.getBoundingClientRect();
-      const x = Math.max(0, Math.min(rect.width - 1, e.clientX - rect.left));
-      const idx = Math.round((x / rect.width) * (points.length - 1));
-      const p = points[idx];
-      if (!p) return;
-      const text = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${p.date} · ${Number(p.rate).toFixed(6)}`;
       const stageRect = rateChartStageEl.getBoundingClientRect();
-      const localX = Math.max(8, Math.min(stageRect.width - 8, e.clientX - stageRect.left));
-      const localY = Math.max(8, Math.min(stageRect.height - 8, e.clientY - stageRect.top));
+      const localX = Math.max(0, Math.min(stageRect.width - 1, e.clientX - stageRect.left));
+      const localY = Math.max(0, Math.min(stageRect.height - 1, e.clientY - stageRect.top));
+
+      let nearest = null;
+      let nearestDist = Number.POSITIVE_INFINITY;
+      for (const pt of points) {
+        const dx = pt.x - localX;
+        const dy = pt.y - localY;
+        const dist = Math.hypot(dx, dy);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = pt;
+        }
+      }
+
+      // 仅当鼠标靠近曲线时，才显示橙色点和提示
+      const HIT_THRESHOLD_PX = 14;
+      if (!nearest || nearestDist > HIT_THRESHOLD_PX) {
+        chartTooltipEl.style.display = "none";
+        const hoverDot = document.getElementById("hoverDot");
+        if (hoverDot) hoverDot.setAttribute("visibility", "hidden");
+        return;
+      }
+
+      const p = nearest;
+      const text = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${p.date} · ${Number(p.rate).toFixed(6)}`;
       chartTooltipEl.textContent = text;
-      chartTooltipEl.style.left = `${localX}px`;
-      chartTooltipEl.style.top = `${localY}px`;
+      chartTooltipEl.style.left = `${Math.max(8, Math.min(stageRect.width - 8, localX))}px`;
+      chartTooltipEl.style.top = `${Math.max(8, Math.min(stageRect.height - 8, localY))}px`;
       chartTooltipEl.style.display = "block";
       const hoverDot = document.getElementById("hoverDot");
       if (hoverDot) {
