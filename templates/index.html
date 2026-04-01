@@ -162,6 +162,7 @@
       grid-template-columns: 4fr 6fr;
       gap: 10px;
       align-items: stretch;
+      margin: 0;
     }
     .result-pane {
       border: 1px solid #dbe4f2; border-radius: 8px; background: #fff;
@@ -652,8 +653,8 @@
         renderChartMessage("暂无图表数据。");
         return;
       }
-      const w = Math.max(600, rateChartStageEl.clientWidth);
-      const h = Math.max(260, rateChartStageEl.clientHeight);
+      const w = Math.max(320, rateChartStageEl.clientWidth);
+      const h = Math.max(220, rateChartStageEl.clientHeight);
       rateChartEl.setAttribute("viewBox", `0 0 ${w} ${h}`);
       const pad = { l: 56, r: 20, t: 18, b: 28 };
       const innerW = w - pad.l - pad.r;
@@ -861,9 +862,12 @@
     rateChartEl.addEventListener("mousemove", (e) => {
       const points = rateChartEl._chartPoints || [];
       if (!points.length || points.length < 2) return;
-      const stageRect = rateChartStageEl.getBoundingClientRect();
-      const localX = Math.max(0, Math.min(stageRect.width - 1, e.clientX - stageRect.left));
-      const localY = Math.max(0, Math.min(stageRect.height - 1, e.clientY - stageRect.top));
+      const svgRect = rateChartEl.getBoundingClientRect();
+      const vb = rateChartEl.viewBox.baseVal;
+      const scaleX = vb && svgRect.width > 0 ? vb.width / svgRect.width : 1;
+      const scaleY = vb && svgRect.height > 0 ? vb.height / svgRect.height : 1;
+      const localX = Math.max(0, Math.min((svgRect.width - 1) * scaleX, (e.clientX - svgRect.left) * scaleX));
+      const localY = Math.max(0, Math.min((svgRect.height - 1) * scaleY, (e.clientY - svgRect.top) * scaleY));
 
       // Use point-to-segment distance instead of nearest sampled point.
       // This avoids false triggers in empty areas between sampled points.
@@ -889,7 +893,7 @@
       }
 
       // 仅当鼠标靠近曲线时，才显示橙色点和提示
-      const HIT_THRESHOLD_PX = 10;
+      const HIT_THRESHOLD_PX = 8 * ((scaleX + scaleY) / 2);
       if (!nearest || nearestDist > HIT_THRESHOLD_PX) {
         chartTooltipEl.style.display = "none";
         const hoverDot = document.getElementById("hoverDot");
@@ -899,9 +903,12 @@
 
       const p = nearest;
       const text = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${p.date} · ${Number(p.rate).toFixed(6)}`;
+      const stageRect = rateChartStageEl.getBoundingClientRect();
+      const tipX = (p.x / Math.max(1, scaleX));
+      const tipY = (p.y / Math.max(1, scaleY));
       chartTooltipEl.textContent = text;
-      chartTooltipEl.style.left = `${Math.max(8, Math.min(stageRect.width - 8, localX))}px`;
-      chartTooltipEl.style.top = `${Math.max(8, Math.min(stageRect.height - 8, localY))}px`;
+      chartTooltipEl.style.left = `${Math.max(8, Math.min(stageRect.width - 8, tipX))}px`;
+      chartTooltipEl.style.top = `${Math.max(8, Math.min(stageRect.height - 8, tipY))}px`;
       chartTooltipEl.style.display = "block";
       const hoverDot = document.getElementById("hoverDot");
       if (hoverDot) {
