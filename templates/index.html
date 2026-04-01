@@ -179,7 +179,14 @@
       min-height: 180px;
       max-height: none;
     }
-    .chart-pane { display: flex; flex-direction: column; min-height: 0; }
+    .chart-pane {
+      display: flex;
+      flex-direction: column;
+      min-height: 140px;
+      max-height: 220px;
+      height: auto;
+      align-self: start;
+    }
     .result-text {
       white-space: pre-line;
       line-height: 1.7;
@@ -271,6 +278,7 @@
       .result-split { grid-template-columns: 1fr; min-height: auto; }
       .result-pane { min-height: 180px; padding: 10px; margin-bottom: 10px; }
       .result-pane-left { height: auto; min-height: 160px; }
+      .chart-pane { min-height: 120px; max-height: 180px; }
       .ascii-wrap { height: auto; margin-bottom: 10px; }
       #convertBtn { min-width: 180px; width: 70%; }
     }
