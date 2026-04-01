@@ -171,13 +171,13 @@
       padding: 12px;
       min-height: 0; height: 100%; display: flex; flex-direction: column;
       box-shadow: none;
+      margin-bottom: 10px;
     }
     .result-pane-left {
       align-self: stretch;
       height: calc(100% - 10px);
       min-height: 180px;
       max-height: none;
-      margin-bottom: 10px;
     }
     .chart-pane { display: flex; flex-direction: column; min-height: 0; }
     .result-text {
@@ -193,7 +193,13 @@
     }
     .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: var(--shell-gap); }
     .chart-head select { width: auto; min-width: 84px; padding: 6px 8px; font-size: 13px; }
-    .ascii-wrap { position: relative; flex: 1 1 auto; min-height: 240px; height: 100%; }
+    .ascii-wrap {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 240px;
+      height: calc(100% - 10px);
+      margin-bottom: 10px;
+    }
     .chart-stage {
       position: relative;
       border: 1px solid #93c5fd;
@@ -263,8 +269,9 @@
       .history-switch-wrap { position: static; transform: none; }
       .output-shell { padding: 8px 8px 12px 8px; }
       .result-split { grid-template-columns: 1fr; min-height: auto; }
-      .result-pane { min-height: 180px; padding: 10px; }
-      .result-pane-left { height: auto; min-height: 160px; margin-bottom: 10px; }
+      .result-pane { min-height: 180px; padding: 10px; margin-bottom: 10px; }
+      .result-pane-left { height: auto; min-height: 160px; }
+      .ascii-wrap { height: auto; margin-bottom: 10px; }
       #convertBtn { min-width: 180px; width: 70%; }
     }
   </style>
