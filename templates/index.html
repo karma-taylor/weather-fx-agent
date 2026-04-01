@@ -294,10 +294,10 @@
           <div class="ascii-wrap">
             <div class="chart-stage" id="rateChartStage">
               <svg class="chart-svg" id="rateChart" viewBox="0 0 1000 420" preserveAspectRatio="none"></svg>
-            </div>
-            <div class="chart-loading" id="chartLoading">
-              <div class="spinner"></div>
-              <div>Loading...</div>
+              <div class="chart-loading" id="chartLoading">
+                <div class="spinner"></div>
+                <div>Loading...</div>
+              </div>
             </div>
           </div>
         </div>
@@ -645,10 +645,36 @@
         ? `<line x1="${pad.l}" y1="${yOf(fixedRate)}" x2="${w - pad.r}" y2="${yOf(fixedRate)}" stroke="#dc2626" stroke-dasharray="6 5" stroke-width="1.5" />`
         : "";
 
+      let yTicksSvg = "";
+      const yTickCount = 6;
+      for (let i = 0; i <= yTickCount; i++) {
+        const v = min + ((max - min) * i) / yTickCount;
+        const y = yOf(v);
+        yTicksSvg += `
+          <line x1="${pad.l - 4}" y1="${y}" x2="${pad.l}" y2="${y}" stroke="#64748b" stroke-width="1" />
+          <line x1="${pad.l}" y1="${y}" x2="${w - pad.r}" y2="${y}" stroke="#e2e8f0" stroke-width="1" />
+          <text x="${pad.l - 8}" y="${y + 4}" text-anchor="end" fill="#64748b" font-size="11">${v.toFixed(4)}</text>
+        `;
+      }
+
+      const xLeft = pts[0];
+      const xMid = pts[Math.floor((pts.length - 1) / 2)];
+      const xRight = pts[pts.length - 1];
+      const xTicksSvg = `
+        <line x1="${xLeft.x}" y1="${h - pad.b}" x2="${xLeft.x}" y2="${h - pad.b + 4}" stroke="#64748b" stroke-width="1" />
+        <line x1="${xMid.x}" y1="${h - pad.b}" x2="${xMid.x}" y2="${h - pad.b + 4}" stroke="#64748b" stroke-width="1" />
+        <line x1="${xRight.x}" y1="${h - pad.b}" x2="${xRight.x}" y2="${h - pad.b + 4}" stroke="#64748b" stroke-width="1" />
+        <text x="${xLeft.x}" y="${h - pad.b + 18}" text-anchor="middle" fill="#64748b" font-size="11">${xLeft.date.slice(5)}</text>
+        <text x="${xMid.x}" y="${h - pad.b + 18}" text-anchor="middle" fill="#64748b" font-size="11">${xMid.date.slice(5)}</text>
+        <text x="${xRight.x}" y="${h - pad.b + 18}" text-anchor="middle" fill="#64748b" font-size="11">${xRight.date.slice(5)}</text>
+      `;
+
       rateChartEl.innerHTML = `
         <rect x="0" y="0" width="${w}" height="${h}" fill="#f8fafc"></rect>
+        ${yTicksSvg}
         <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${h - pad.b}" stroke="#94a3b8" stroke-width="1"/>
         <line x1="${pad.l}" y1="${h - pad.b}" x2="${w - pad.r}" y2="${h - pad.b}" stroke="#94a3b8" stroke-width="1"/>
+        ${xTicksSvg}
         ${fixedLine}
         <path d="${d}" fill="none" stroke="#334155" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
         <circle cx="${pts[maxIdx].x}" cy="${pts[maxIdx].y}" r="4" fill="#2563eb"></circle>
