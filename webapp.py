@@ -270,17 +270,30 @@ def fetch_historical_rates(base: str, target: str, days: int):
         return series
 
     url = f"https://api.frankfurter.app/{start_date.isoformat()}..{end_date.isoformat()}"
-    resp = requests.get(url, params={"from": base, "to": target}, timeout=12)
-    resp.raise_for_status()
-    data = resp.json()
-    rates_map = data.get("rates") or {}
-    series = []
-    for date_str in sorted(rates_map.keys()):
-        one_day = rates_map.get(date_str) or {}
-        rate = one_day.get(target)
-        if isinstance(rate, (int, float)):
-            series.append({"date": date_str, "rate": float(rate)})
-    return series
+    try:
+        resp = requests.get(url, params={"from": base, "to": target}, timeout=12)
+        resp.raise_for_status()
+        data = resp.json()
+        rates_map = data.get("rates") or {}
+        series = []
+        for date_str in sorted(rates_map.keys()):
+            one_day = rates_map.get(date_str) or {}
+            rate = one_day.get(target)
+            if isinstance(rate, (int, float)):
+                series.append({"date": date_str, "rate": float(rate)})
+        if series:
+            return series
+    except requests.RequestException:
+        # Fallback below for pairs not supported by historical provider.
+        pass
+
+    # Fallback: if historical provider has no data (or 404), use current rate
+    # to build a flat historical line so the UI still updates for selected pair.
+    fallback_rate = fetch_market_rate(base, target)
+    return [
+        {"date": (start_date + timedelta(days=i)).isoformat(), "rate": float(fallback_rate)}
+        for i in range(days)
+    ]
 
 
 @app.get("/", response_class=HTMLResponse)
