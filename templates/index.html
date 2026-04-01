@@ -73,7 +73,10 @@
       gap: 16px;
       flex-wrap: wrap;
       margin-bottom: 12px;
+      position: relative;
     }
+    .title-main { margin: 0; text-align: center; width: 100%; }
+    .history-switch-wrap { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
     .switch-label {
       display: inline-flex;
       align-items: center;
@@ -146,10 +149,12 @@
     .mini-icon-btn:hover { background: #eef2ff; }
     .output-shell {
       margin-top: 16px;
-      border: 1px solid #93c5fd;
+      border: 2px solid #60a5fa;
       border-radius: 10px;
       background: #f8fafc;
       padding: 10px;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     .result-split {
       min-height: 310px; display: grid; grid-template-columns: 4fr 6fr; gap: 10px; align-items: stretch;
@@ -174,6 +179,18 @@
       overflow: hidden;
     }
     .chart-svg { width: 100%; height: 100%; display: block; cursor: crosshair; }
+    .convert-row {
+      display: flex;
+      justify-content: center;
+      margin: 12px 0 8px;
+    }
+    #convertBtn {
+      min-width: 260px;
+      height: 42px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 10px;
+    }
     .chart-tooltip {
       position: absolute;
       display: none;
@@ -217,9 +234,11 @@
       .right-field { justify-self: stretch; width: 100%; }
       .fixed-rate-wrap { width: 100%; justify-self: stretch; }
       .fixed-rate-wrap .right-field { width: 100%; }
+      .history-switch-wrap { position: static; transform: none; }
       .output-shell { padding: 8px; }
       .result-split { grid-template-columns: 1fr; min-height: auto; }
       .result-pane { min-height: 240px; }
+      #convertBtn { min-width: 180px; width: 70%; }
     }
   </style>
 </head>
@@ -230,11 +249,13 @@
         <div class="wrap">
           <div class="card">
       <div class="toolbar-top">
-        <h1 style="margin:0; flex:1; text-align:center;">汇率计算器</h1>
-        <label class="switch-label" title="开启后在右侧显示本机历史记录（仅保存在当前浏览器）">
-          <input type="checkbox" id="historyToggle" />
-          <span>显示历史记录</span>
-        </label>
+        <h1 class="title-main">汇率计算器</h1>
+        <div class="history-switch-wrap">
+          <label class="switch-label" title="开启后在右侧显示本机历史记录（仅保存在当前浏览器）">
+            <input type="checkbox" id="historyToggle" />
+            <span>显示历史记录</span>
+          </label>
+        </div>
       </div>
       <p class="feature-hint">勾选「显示历史记录」可在右侧查看本机换算历史（数据仅存于当前浏览器）。</p>
 
@@ -284,7 +305,9 @@
         <div class="curr">仅在“不勾选固定汇率”时生效</div>
       </div>
 
-      <button id="convertBtn">立即换算</button>
+      <div class="convert-row">
+        <button id="convertBtn">立即换算</button>
+      </div>
       <div class="help">
       支持币种（扩展，支持中文识别）：美元(USD)、人民币(CNY)、欧元(EUR)、英镑(GBP)、日元(JPY)、澳元(AUD)、
       加拿大元(CAD)、瑞士法郎(CHF)、新加坡元(SGD)、港币(HKD)、新西兰元(NZD)、瑞典克朗(SEK)、挪威克朗(NOK)、
@@ -702,6 +725,7 @@
         <text x="${pts[maxIdx].x + 6}" y="${pts[maxIdx].y - 6}" fill="#1e40af" font-size="12">H</text>
         <circle cx="${pts[minIdx].x}" cy="${pts[minIdx].y}" r="4" fill="#16a34a"></circle>
         <text x="${pts[minIdx].x + 6}" y="${pts[minIdx].y + 14}" fill="#166534" font-size="12">L</text>
+        <circle id="hoverDot" cx="-9999" cy="-9999" r="5" fill="#f59e0b" stroke="#b45309" stroke-width="1.5" visibility="hidden"></circle>
       `;
       rateChartEl.dataset.base = base || "?";
       rateChartEl.dataset.target = target || "?";
@@ -846,8 +870,18 @@
       chartTooltipEl.style.left = `${localX}px`;
       chartTooltipEl.style.top = `${localY}px`;
       chartTooltipEl.style.display = "block";
+      const hoverDot = document.getElementById("hoverDot");
+      if (hoverDot) {
+        hoverDot.setAttribute("cx", String(p.x));
+        hoverDot.setAttribute("cy", String(p.y));
+        hoverDot.setAttribute("visibility", "visible");
+      }
     });
-    rateChartEl.addEventListener("mouseleave", () => { chartTooltipEl.style.display = "none"; });
+    rateChartEl.addEventListener("mouseleave", () => {
+      chartTooltipEl.style.display = "none";
+      const hoverDot = document.getElementById("hoverDot");
+      if (hoverDot) hoverDot.setAttribute("visibility", "hidden");
+    });
     window.addEventListener("resize", () => {
       if (chartSeries.length) renderChart();
     });
