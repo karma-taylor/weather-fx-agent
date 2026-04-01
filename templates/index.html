@@ -172,6 +172,12 @@
       min-height: 0; height: 100%; display: flex; flex-direction: column;
       box-shadow: none;
     }
+    .result-pane-left {
+      align-self: start;
+      min-height: 96px;
+      max-height: 140px;
+      height: auto;
+    }
     .chart-pane { display: flex; flex-direction: column; min-height: 0; }
     .result-text {
       white-space: pre-line;
@@ -257,6 +263,7 @@
       .output-shell { padding: 8px 8px 12px 8px; }
       .result-split { grid-template-columns: 1fr; min-height: auto; }
       .result-pane { min-height: 180px; padding: 10px; }
+      .result-pane-left { min-height: 84px; max-height: 120px; }
       #convertBtn { min-width: 180px; width: 70%; }
     }
   </style>
@@ -330,7 +337,7 @@
       <div class="err" id="errorBox"></div>
       <div class="output-shell">
         <div class="result-split">
-          <div class="result-pane">
+          <div class="result-pane result-pane-left">
             <div class="result-text" id="resultBox">计算结果将显示在这里...</div>
           </div>
           <div class="result-pane chart-pane">
