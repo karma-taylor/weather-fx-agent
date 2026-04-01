@@ -145,7 +145,7 @@
     }
     .mini-icon-btn:hover { background: #eef2ff; }
     .result-split {
-      margin-top: 16px; border: 1px solid #d5dce7; border-radius: 10px; background: #f8fafc;
+      margin-top: 16px; border: 1px solid #93c5fd; border-radius: 10px; background: #f8fafc;
       padding: 10px; min-height: 310px; display: grid; grid-template-columns: 4fr 6fr; gap: 10px; align-items: stretch;
     }
     .result-pane {
@@ -156,7 +156,6 @@
     .result-text { white-space: pre-line; line-height: 1.7; flex: 1 1 auto; }
     .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
     .chart-head select { width: auto; min-width: 84px; padding: 6px 8px; font-size: 13px; }
-    .chart-hover { font-size: 12px; color: #334155; min-height: 18px; margin-bottom: 8px; }
     .ascii-wrap { position: relative; flex: 1 1 auto; min-height: 240px; height: 100%; }
     .chart-stage {
       position: relative;
@@ -169,6 +168,19 @@
       overflow: hidden;
     }
     .chart-svg { width: 100%; height: 100%; display: block; cursor: crosshair; }
+    .chart-tooltip {
+      position: absolute;
+      display: none;
+      z-index: 3;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.92);
+      color: #fff;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      transform: translate(10px, -12px);
+    }
     .chart-loading {
       position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
       gap: 8px; background: rgba(255, 255, 255, 0.65); border-radius: 6px; color: #334155; font-size: 13px;
@@ -283,17 +295,17 @@
         </div>
         <div class="result-pane chart-pane">
           <div class="chart-head">
-            <strong>汇率变化（ASCII）</strong>
+            <strong>汇率变化</strong>
             <select id="chartDays">
               <option value="7">7天</option>
               <option value="30" selected>30天</option>
               <option value="90">90天</option>
             </select>
           </div>
-          <div id="chartHover" class="chart-hover"></div>
           <div class="ascii-wrap">
             <div class="chart-stage" id="rateChartStage">
               <svg class="chart-svg" id="rateChart" viewBox="0 0 1000 420" preserveAspectRatio="none"></svg>
+              <div id="chartTooltip" class="chart-tooltip"></div>
               <div class="chart-loading" id="chartLoading">
                 <div class="spinner"></div>
                 <div>Loading...</div>
@@ -445,9 +457,9 @@
     const saveDefaultFixedBtn = document.getElementById("saveDefaultFixedBtn");
     const bankSourceEl = document.getElementById("bankSource");
     const chartDaysEl = document.getElementById("chartDays");
-    const chartHoverEl = document.getElementById("chartHover");
     const rateChartEl = document.getElementById("rateChart");
     const rateChartStageEl = document.getElementById("rateChartStage");
+    const chartTooltipEl = document.getElementById("chartTooltip");
     const chartLoadingEl = document.getElementById("chartLoading");
     const convertBtn = document.getElementById("convertBtn");
     const resultBox = document.getElementById("resultBox");
@@ -687,7 +699,7 @@
       rateChartEl.dataset.bank = bankSourceEl.value;
       rateChartEl.dataset.days = chartDaysEl.value;
       rateChartEl._chartPoints = pts;
-      chartHoverEl.textContent = "";
+      chartTooltipEl.style.display = "none";
     }
 
     async function refreshRateChart() {
@@ -817,9 +829,16 @@
       const idx = Math.round((x / rect.width) * (points.length - 1));
       const p = points[idx];
       if (!p) return;
-      chartHoverEl.textContent = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${rateChartEl.dataset.bank} · ${rateChartEl.dataset.days}天 · ${p.date} 汇率=${Number(p.rate).toFixed(6)}`;
+      const text = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${p.date} · ${Number(p.rate).toFixed(6)}`;
+      const stageRect = rateChartStageEl.getBoundingClientRect();
+      const localX = Math.max(8, Math.min(stageRect.width - 8, e.clientX - stageRect.left));
+      const localY = Math.max(8, Math.min(stageRect.height - 8, e.clientY - stageRect.top));
+      chartTooltipEl.textContent = text;
+      chartTooltipEl.style.left = `${localX}px`;
+      chartTooltipEl.style.top = `${localY}px`;
+      chartTooltipEl.style.display = "block";
     });
-    rateChartEl.addEventListener("mouseleave", () => { chartHoverEl.textContent = ""; });
+    rateChartEl.addEventListener("mouseleave", () => { chartTooltipEl.style.display = "none"; });
     window.addEventListener("resize", () => {
       if (chartSeries.length) renderChart();
     });
