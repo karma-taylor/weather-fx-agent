@@ -168,7 +168,8 @@
     }
     .result-pane {
       border: 1px solid #dbe4f2; border-radius: 8px; background: #fff;
-      padding: var(--shell-gap); min-height: 0; height: 100%; display: flex; flex-direction: column;
+      padding: var(--shell-gap) var(--shell-gap) 28px var(--shell-gap);
+      min-height: 0; height: 100%; display: flex; flex-direction: column;
     }
     .chart-pane { display: flex; flex-direction: column; min-height: 0; }
     .result-text { white-space: pre-line; line-height: 1.7; flex: 1 1 auto; }
@@ -244,7 +245,7 @@
       .history-switch-wrap { position: static; transform: none; }
       .output-shell { --shell-gap: 12px; padding: var(--shell-gap) var(--shell-gap) 20px var(--shell-gap); }
       .result-split { grid-template-columns: 1fr; min-height: auto; }
-      .result-pane { min-height: 240px; }
+      .result-pane { min-height: 240px; padding: var(--shell-gap) var(--shell-gap) 20px var(--shell-gap); }
       #convertBtn { min-width: 180px; width: 70%; }
     }
   </style>
