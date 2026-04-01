@@ -153,7 +153,7 @@
       border: 2px solid #60a5fa;
       border-radius: 10px;
       background: #f8fafc;
-      padding: var(--shell-gap) var(--shell-gap) 0 var(--shell-gap);
+      padding: var(--shell-gap);
       overflow: hidden;
       box-sizing: border-box;
       min-height: 360px;
@@ -165,15 +165,14 @@
       gap: 10px;
       align-items: stretch;
       margin: 0;
-      margin-bottom: var(--shell-gap);
     }
     .result-pane {
       border: 1px solid #dbe4f2; border-radius: 8px; background: #fff;
-      padding: 10px; min-height: 0; height: 100%; display: flex; flex-direction: column;
+      padding: var(--shell-gap); min-height: 0; height: 100%; display: flex; flex-direction: column;
     }
     .chart-pane { display: flex; flex-direction: column; min-height: 0; }
     .result-text { white-space: pre-line; line-height: 1.7; flex: 1 1 auto; }
-    .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: var(--shell-gap); }
     .chart-head select { width: auto; min-width: 84px; padding: 6px 8px; font-size: 13px; }
     .ascii-wrap { position: relative; flex: 1 1 auto; min-height: 240px; height: 100%; }
     .chart-stage {
@@ -243,7 +242,7 @@
       .fixed-rate-wrap { width: 100%; justify-self: stretch; }
       .fixed-rate-wrap .right-field { width: 100%; }
       .history-switch-wrap { position: static; transform: none; }
-      .output-shell { --shell-gap: 8px; padding: var(--shell-gap) var(--shell-gap) 0 var(--shell-gap); }
+      .output-shell { --shell-gap: 8px; padding: var(--shell-gap); }
       .result-split { grid-template-columns: 1fr; min-height: auto; }
       .result-pane { min-height: 240px; }
       #convertBtn { min-width: 180px; width: 70%; }
