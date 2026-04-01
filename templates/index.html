@@ -155,13 +155,9 @@
       padding: 10px;
       overflow: hidden;
       box-sizing: border-box;
-      min-height: 420px;
-      display: flex;
     }
     .result-split {
-      flex: 1 1 auto;
-      height: 100%;
-      min-height: 0;
+      min-height: 320px;
       display: grid;
       grid-template-columns: 4fr 6fr;
       gap: 10px;
@@ -243,7 +239,7 @@
       .fixed-rate-wrap { width: 100%; justify-self: stretch; }
       .fixed-rate-wrap .right-field { width: 100%; }
       .history-switch-wrap { position: static; transform: none; }
-      .output-shell { padding: 8px; min-height: 340px; }
+      .output-shell { padding: 8px; }
       .result-split { grid-template-columns: 1fr; min-height: auto; }
       .result-pane { min-height: 240px; }
       #convertBtn { min-width: 180px; width: 70%; }
@@ -864,25 +860,36 @@
     targetInputEl.addEventListener("blur", refreshRateChart);
     rateChartEl.addEventListener("mousemove", (e) => {
       const points = rateChartEl._chartPoints || [];
-      if (!points.length) return;
+      if (!points.length || points.length < 2) return;
       const stageRect = rateChartStageEl.getBoundingClientRect();
       const localX = Math.max(0, Math.min(stageRect.width - 1, e.clientX - stageRect.left));
       const localY = Math.max(0, Math.min(stageRect.height - 1, e.clientY - stageRect.top));
 
+      // Use point-to-segment distance instead of nearest sampled point.
+      // This avoids false triggers in empty areas between sampled points.
       let nearest = null;
       let nearestDist = Number.POSITIVE_INFINITY;
-      for (const pt of points) {
-        const dx = pt.x - localX;
-        const dy = pt.y - localY;
-        const dist = Math.hypot(dx, dy);
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i];
+        const b = points[i + 1];
+        const abx = b.x - a.x;
+        const aby = b.y - a.y;
+        const ab2 = abx * abx + aby * aby || 1;
+        let t = ((localX - a.x) * abx + (localY - a.y) * aby) / ab2;
+        t = Math.max(0, Math.min(1, t));
+        const px = a.x + t * abx;
+        const py = a.y + t * aby;
+        const dist = Math.hypot(px - localX, py - localY);
         if (dist < nearestDist) {
           nearestDist = dist;
-          nearest = pt;
+          const rate = a.rate + (b.rate - a.rate) * t;
+          const date = t < 0.5 ? a.date : b.date;
+          nearest = { x: px, y: py, rate, date };
         }
       }
 
       // 仅当鼠标靠近曲线时，才显示橙色点和提示
-      const HIT_THRESHOLD_PX = 14;
+      const HIT_THRESHOLD_PX = 10;
       if (!nearest || nearestDist > HIT_THRESHOLD_PX) {
         chartTooltipEl.style.display = "none";
         const hoverDot = document.getElementById("hoverDot");
