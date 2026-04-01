@@ -3,10 +3,98 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-store" />
   <title>汇率换算 Agent（Web）</title>
   <style>
     body { font-family: "Segoe UI", Arial, sans-serif; background: #f3f6fb; margin: 0; padding: 24px; color: #1f2937; }
-    .wrap { max-width: 980px; margin: 0 auto; }
+    .page-viewport { max-width: 1400px; margin: 0 auto; overflow: hidden; transition: max-width 0.35s ease; }
+    .page-viewport.history-open { max-width: 100%; }
+    .split-track {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 0;
+      width: 100%;
+    }
+    .panel-main {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: 980px;
+      margin: 0 auto;
+      transition: flex-basis 0.35s ease, max-width 0.35s ease;
+    }
+    .page-viewport.history-open .panel-main {
+      max-width: none;
+      margin: 0;
+      flex: 1 1 55%;
+    }
+    .panel-history {
+      flex: 0 0 0;
+      width: 0;
+      min-width: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: flex-basis 0.35s ease, opacity 0.25s ease, min-width 0.35s ease;
+      border-left: 1px solid transparent;
+    }
+    .page-viewport.history-open .panel-history {
+      flex: 0 0 min(380px, 38vw);
+      width: min(380px, 38vw);
+      min-width: min(380px, 38vw);
+      opacity: 1;
+      border-left-color: #d5dce7;
+      padding-left: 16px;
+      margin-left: 8px;
+    }
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .history-header h2 { margin: 0; font-size: 18px; color: #1f2937; }
+    .history-list { max-height: calc(100vh - 180px); overflow-y: auto; font-size: 13px; }
+    .history-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #fafcff;
+    }
+    .history-item .t { color: #6b7280; font-size: 12px; margin-bottom: 4px; }
+    .history-item .b { font-weight: 600; color: #111827; }
+    .history-empty { color: #9ca3af; font-size: 14px; padding: 16px 0; }
+    .toolbar-top {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .switch-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .switch-label input { width: 18px; height: 18px; cursor: pointer; }
+    .feature-hint {
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+      margin: 0 0 14px;
+      line-height: 1.5;
+    }
+    button.secondary-btn { background: #6b7280; }
+    button.secondary-btn:hover { background: #4b5563; }
+    .wrap { max-width: 100%; margin: 0 auto; }
     .card { background: #fff; border: 1px solid #d5dce7; border-radius: 12px; padding: 20px; }
     h1 { margin: 0 0 18px; text-align: center; }
     .grid { display: grid; grid-template-columns: 170px 320px 210px; gap: 10px; align-items: center; margin-bottom: 10px; }
@@ -52,12 +140,40 @@
     .result { margin-top: 16px; border: 1px solid #d5dce7; border-radius: 10px; background: #fafcff; padding: 14px; min-height: 160px; white-space: pre-line; line-height: 1.7; }
     .err { margin-top: 10px; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; display: none; }
     .curr { color: #4b5563; font-size: 12px; }
+    @media (max-width: 720px) {
+      .page-viewport.history-open .split-track { flex-direction: column; align-items: stretch; }
+      .page-viewport.history-open .panel-main { flex: 1 1 auto; max-width: 100%; }
+      .page-viewport.history-open .panel-history {
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        border-left: none;
+        padding-left: 0;
+        margin-left: 0;
+        border-top: 1px solid #d5dce7;
+        padding-top: 16px;
+        margin-top: 8px;
+      }
+      .form-row { width: 100%; max-width: 760px; transform: none; margin-left: 0; margin-right: 0; }
+      .grid { grid-template-columns: 1fr; }
+      .right-field { justify-self: stretch; width: 100%; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>汇率计算器</h1>
+  <div class="page-viewport" id="pageViewport">
+    <div class="split-track" id="splitTrack">
+      <div class="panel-main">
+        <div class="wrap">
+          <div class="card">
+      <div class="toolbar-top">
+        <h1 style="margin:0; flex:1; text-align:center;">汇率计算器</h1>
+        <label class="switch-label" title="开启后在右侧显示本机历史记录（仅保存在当前浏览器）">
+          <input type="checkbox" id="historyToggle" />
+          <span>显示历史记录</span>
+        </label>
+      </div>
+      <p class="feature-hint">勾选「显示历史记录」可在右侧查看本机换算历史（数据仅存于当前浏览器）。</p>
 
       <div class="grid form-row">
         <label for="baseInput">待计算币种 (Base)</label>
@@ -115,10 +231,94 @@
 
       <div class="err" id="errorBox"></div>
       <div class="result" id="resultBox">计算结果将显示在这里...</div>
+          </div>
+        </div>
+      </div>
+      <aside class="panel-history" id="panelHistory" aria-label="历史记录">
+        <div class="history-header">
+          <h2>历史记录</h2>
+          <button type="button" class="secondary-btn" id="clearHistoryBtn" style="padding:8px 12px;font-size:13px;">清空</button>
+        </div>
+        <p style="margin:0 0 10px; font-size:12px; color:#6b7280;">仅保存在本浏览器，他人无法看到。</p>
+        <div class="history-list" id="historyList"></div>
+      </aside>
     </div>
   </div>
 
   <script>
+    const HISTORY_KEY = "weather_fx_history_v1";
+    const HISTORY_PANEL_KEY = "weather_fx_history_panel_open";
+    const HISTORY_MAX = 80;
+
+    const pageViewport = document.getElementById("pageViewport");
+    const historyToggle = document.getElementById("historyToggle");
+    const historyListEl = document.getElementById("historyList");
+    const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistory(items) {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, HISTORY_MAX)));
+    }
+
+    function pushHistoryEntry(entry) {
+      const items = loadHistory();
+      items.unshift({
+        id: Date.now() + Math.random().toString(36).slice(2),
+        ...entry,
+      });
+      saveHistory(items);
+      if (historyToggle.checked) renderHistoryList();
+    }
+
+    function renderHistoryList() {
+      const items = loadHistory();
+      if (!items.length) {
+        historyListEl.innerHTML = '<div class="history-empty">暂无记录，完成一次「立即换算」后将显示在这里。</div>';
+        return;
+      }
+      historyListEl.innerHTML = items
+        .map((h) => {
+          const timeStr = h.localTime || h.updated_at || "";
+          return `<div class="history-item">
+            <div class="t">${timeStr} · ${h.mode} · ${h.source || "—"}</div>
+            <div class="b">${Number(h.amount).toFixed(2)} ${h.base} → ${Number(h.converted).toFixed(4)} ${h.target}</div>
+            <div class="t">汇率 1 ${h.base} = ${h.rate} ${h.target}</div>
+          </div>`;
+        })
+        .join("");
+    }
+
+    function setHistoryPanelOpen(open) {
+      historyToggle.checked = open;
+      pageViewport.classList.toggle("history-open", open);
+      localStorage.setItem(HISTORY_PANEL_KEY, open ? "1" : "0");
+      if (open) renderHistoryList();
+    }
+
+    historyToggle.addEventListener("change", () => {
+      setHistoryPanelOpen(historyToggle.checked);
+    });
+
+    clearHistoryBtn.addEventListener("click", () => {
+      if (!confirm("确定清空本机全部历史记录？")) return;
+      localStorage.removeItem(HISTORY_KEY);
+      renderHistoryList();
+    });
+
+    if (localStorage.getItem(HISTORY_PANEL_KEY) === "1") {
+      historyToggle.checked = true;
+      pageViewport.classList.add("history-open");
+    }
     const CURRENCIES = [
       { code: "USD", zh: "美元", en: "US Dollar", aliases: ["美金"] },
       { code: "CNY", zh: "人民币", en: "Chinese Yuan", aliases: ["RMB", "元"] },
@@ -338,6 +538,17 @@
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.detail || "请求失败");
         renderResult(data);
+        pushHistoryEntry({
+          localTime: new Date().toLocaleString("zh-CN", { hour12: false }),
+          mode: data.mode,
+          source: data.source,
+          base: data.base,
+          target: data.target,
+          amount: data.amount,
+          rate: data.rate,
+          converted: data.converted,
+          updated_at: data.updated_at,
+        });
       } catch (e) {
         showError(e.message || "网络异常，请稍后重试。");
         resultBox.textContent = "计算失败。";
@@ -356,6 +567,7 @@
     baseInputEl.addEventListener("change", updateFixedNote);
     targetInputEl.addEventListener("change", updateFixedNote);
     convertBtn.addEventListener("click", convert);
+    if (historyToggle.checked) renderHistoryList();
   </script>
 </body>
 </html>
