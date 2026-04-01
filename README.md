@@ -71,3 +71,10 @@ Monthly Excel:
 - Added client-side conversion history panel (`localStorage`) with a toggle switch.
 - Added history clear action and responsive two-pane layout (stacks on small screens).
 - Added no-cache headers for `/` in `webapp.py` to reduce stale HTML after deploy.
+
+### 2026-04-01（下午）
+- **图表**：结果区右侧为 SVG 平滑曲线图；坐标轴与刻度；鼠标靠近曲线时显示汇率并标橙色点；`GET /api/rates/history` 支持 7/30/90 天并按银行系数调整；历史源不可用时回退为当前价平线，避免 404 与图表卡住。
+- **币种**：解析逻辑收紧（代码优先、`data-code` 绑定下拉选择）；移除易误判别名；修复不同币种被误判为“相同币种”的问题。
+- **银行**：新增「威海银行」选项（前后端 `BANK_RATE_MULTIPLIER` 与下拉一致）。
+- **布局与交互**：输出区 4:6 分栏、多层留白与紧凑高度多次迭代；标题与「立即换算」居中/加宽；删除页面底部冗长「支持币种」说明文案。
+- **固定汇率**：本地默认固定汇率保存（💾）与读取。
