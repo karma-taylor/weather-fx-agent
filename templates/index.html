@@ -149,15 +149,15 @@
       padding: 14px; min-height: 220px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; align-items: start;
     }
     .result-pane { border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; padding: 10px; min-height: 184px; }
+    .chart-pane { display: flex; flex-direction: column; }
     .result-text { white-space: pre-line; line-height: 1.7; min-height: 160px; }
     .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
     .chart-head select { width: auto; min-width: 84px; padding: 6px 8px; font-size: 13px; }
-    .chart-cursor { font-size: 12px; color: #475569; margin-bottom: 6px; min-height: 16px; }
-    .ascii-wrap { position: relative; }
+    .ascii-wrap { position: relative; flex: 1 1 auto; min-height: 0; }
     .ascii-chart {
       margin: 0; font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 1.25;
       white-space: pre; user-select: none; cursor: crosshair; background: #f8fafc;
-      border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; overflow: auto; min-height: 140px;
+      border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; overflow: auto; height: 100%;
     }
     .chart-loading {
       position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
@@ -270,7 +270,7 @@
         <div class="result-pane">
           <div class="result-text" id="resultBox">计算结果将显示在这里...</div>
         </div>
-        <div class="result-pane">
+        <div class="result-pane chart-pane">
           <div class="chart-head">
             <strong>汇率变化（ASCII）</strong>
             <select id="chartDays">
@@ -279,7 +279,6 @@
               <option value="90">90天</option>
             </select>
           </div>
-          <div class="chart-cursor" id="chartCursor">将鼠标移动到图上可查看该日汇率</div>
           <div class="ascii-wrap">
             <pre class="ascii-chart" id="rateChart">请选择币种后将自动加载图表...</pre>
             <div class="chart-loading" id="chartLoading">
@@ -433,7 +432,6 @@
     const bankSourceEl = document.getElementById("bankSource");
     const chartDaysEl = document.getElementById("chartDays");
     const rateChartEl = document.getElementById("rateChart");
-    const chartCursorEl = document.getElementById("chartCursor");
     const chartLoadingEl = document.getElementById("chartLoading");
     const convertBtn = document.getElementById("convertBtn");
     const resultBox = document.getElementById("resultBox");
@@ -571,7 +569,6 @@
       }
       localStorage.setItem(DEFAULT_FIXED_RATE_KEY, String(rate));
       clearError();
-      chartCursorEl.textContent = `已保存默认固定汇率：${rate}`;
     }
 
     function setChartLoading(loading) {
@@ -601,10 +598,31 @@
         const p = (v - min) / (max - min);
         return Math.max(0, Math.min(rows - 1, Math.round((1 - p) * (rows - 1))));
       };
-      sampled.forEach((pt, x) => {
-        const y = rowOf(pt.rate);
-        grid[y][x] = "•";
-      });
+      const plot = (x, y, ch) => {
+        if (x < 0 || x >= cols || y < 0 || y >= rows) return;
+        grid[y][x] = ch;
+      };
+      for (let x = 0; x < sampled.length - 1; x++) {
+        const y1 = rowOf(sampled[x].rate);
+        const y2 = rowOf(sampled[x + 1].rate);
+        const dy = y2 - y1;
+        if (dy === 0) {
+          plot(x, y1, "─");
+          plot(x + 1, y2, "─");
+        } else if (Math.abs(dy) === 1) {
+          plot(x, y1, dy > 0 ? "╲" : "╱");
+          plot(x + 1, y2, dy > 0 ? "╲" : "╱");
+        } else {
+          const step = dy > 0 ? 1 : -1;
+          let y = y1;
+          plot(x, y1, step > 0 ? "╲" : "╱");
+          while (y !== y2) {
+            y += step;
+            plot(x, y, "│");
+          }
+          plot(x + 1, y2, step > 0 ? "╲" : "╱");
+        }
+      }
 
       let maxIdx = 0;
       let minIdx = 0;
@@ -660,7 +678,6 @@
       rateChartEl.dataset.bank = bankSourceEl.value;
       rateChartEl.dataset.days = chartDaysEl.value;
       rateChartEl._chartPoints = built.points;
-      chartCursorEl.textContent = "将鼠标移动到图上可查看该日汇率";
     }
 
     async function refreshRateChart() {
@@ -790,11 +807,9 @@
       const idx = Math.round((x / rect.width) * (points.length - 1));
       const p = points[idx];
       if (!p) return;
-      chartCursorEl.textContent = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${rateChartEl.dataset.bank} · ${rateChartEl.dataset.days}天 · ${p.date} 汇率=${Number(p.rate).toFixed(6)}`;
+      rateChartEl.title = `${rateChartEl.dataset.base}/${rateChartEl.dataset.target} · ${rateChartEl.dataset.bank} · ${rateChartEl.dataset.days}天 · ${p.date} 汇率=${Number(p.rate).toFixed(6)}`;
     });
-    rateChartEl.addEventListener("mouseleave", () => {
-      chartCursorEl.textContent = "将鼠标移动到图上可查看该日汇率";
-    });
+    rateChartEl.addEventListener("mouseleave", () => { rateChartEl.title = ""; });
     convertBtn.addEventListener("click", convert);
     refreshRateChart();
     if (historyToggle.checked) renderHistoryList();
