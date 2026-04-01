@@ -444,7 +444,7 @@
     }
     const CURRENCIES = [
       { code: "USD", zh: "美元", en: "US Dollar", aliases: ["美金"] },
-      { code: "CNY", zh: "人民币", en: "Chinese Yuan", aliases: ["RMB", "元"] },
+      { code: "CNY", zh: "人民币", en: "Chinese Yuan", aliases: ["RMB"] },
       { code: "EUR", zh: "欧元", en: "Euro", aliases: [] },
       { code: "GBP", zh: "英镑", en: "Pound Sterling", aliases: [] },
       { code: "JPY", zh: "日元", en: "Japanese Yen", aliases: [] },
@@ -511,7 +511,9 @@
 
     function fillCurrencies() {
       baseInputEl.value = "USD";
+      baseInputEl.dataset.code = "USD";
       targetInputEl.value = "CNY";
+      targetInputEl.dataset.code = "CNY";
       renderComboList(baseListEl, CURRENCIES, baseInputEl);
       renderComboList(targetListEl, CURRENCIES, targetInputEl);
     }
@@ -520,21 +522,41 @@
       const text = (raw || "").trim();
       if (!text) return "";
       const upper = text.toUpperCase();
-      const direct = CURRENCIES.find((c) => c.code === upper);
-      if (direct) return direct.code;
 
+      // 1) Strongest signal: extract 3-letter code like "日元 (JPY)" or "JPY"
+      const codeInParens = upper.match(/\(([A-Z]{3})\)/);
+      if (codeInParens) {
+        const code = codeInParens[1];
+        if (CURRENCIES.some((c) => c.code === code)) return code;
+      }
+      const codeStandalone = upper.match(/\b([A-Z]{3})\b/);
+      if (codeStandalone) {
+        const code = codeStandalone[1];
+        if (CURRENCIES.some((c) => c.code === code)) return code;
+      }
+
+      // 2) Exact match only (avoid overly broad contains matching like "元")
       const lower = text.toLowerCase();
       for (const c of CURRENCIES) {
         const candidates = [c.zh, c.en, c.code, ...(c.aliases || [])].map((x) => String(x).toLowerCase());
-        if (candidates.some((s) => s === lower || lower.includes(s) || s.includes(lower))) {
-          return c.code;
-        }
+        if (candidates.includes(lower)) return c.code;
+      }
+
+      // 3) Safe prefix match for typing convenience
+      for (const c of CURRENCIES) {
+        const candidates = [c.zh, c.en, c.code, ...(c.aliases || [])].map((x) => String(x).toLowerCase());
+        if (candidates.some((s) => s.startsWith(lower) || lower.startsWith(`${s} `))) return c.code;
       }
       return "";
     }
 
     function currencyLabel(c) {
       return `${c.zh} (${c.code})`;
+    }
+
+    function setInputCurrency(inputEl, c) {
+      inputEl.value = currencyLabel(c);
+      inputEl.dataset.code = c.code;
     }
 
     function renderComboList(listEl, data, inputEl) {
@@ -546,7 +568,7 @@
         item.textContent = `${c.zh} (${c.code}) - ${c.en}`;
         item.addEventListener("mousedown", (e) => {
           e.preventDefault();
-          inputEl.value = currencyLabel(c);
+          setInputCurrency(inputEl, c);
           listEl.style.display = "none";
           updateFixedNote();
           refreshRateChart();
@@ -580,6 +602,7 @@
         }
       });
       inputEl.addEventListener("input", () => {
+        inputEl.dataset.code = "";
         const row = inputEl.closest(".form-row");
         renderComboList(listEl, filterCurrencies(inputEl.value), inputEl);
         listEl.style.display = "block";
@@ -599,10 +622,24 @@
           row && row.classList.remove("combo-open");
         }
       });
+      inputEl.addEventListener("blur", () => {
+        const parsed = parseCurrencyCode(inputEl.value);
+        if (parsed) {
+          const c = CURRENCIES.find((x) => x.code === parsed);
+          if (c) setInputCurrency(inputEl, c);
+          else inputEl.dataset.code = parsed;
+        } else {
+          inputEl.dataset.code = "";
+        }
+      });
     }
 
     function getCurrencyCode(inputEl) {
-      return parseCurrencyCode(inputEl.value) || "";
+      const fromData = (inputEl.dataset.code || "").toUpperCase().trim();
+      if (fromData && CURRENCIES.some((c) => c.code === fromData)) return fromData;
+      const parsed = parseCurrencyCode(inputEl.value) || "";
+      if (parsed) inputEl.dataset.code = parsed;
+      return parsed;
     }
 
     function syncModeUI() {
