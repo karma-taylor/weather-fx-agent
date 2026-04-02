@@ -198,6 +198,34 @@
       min-height: 0;
       box-sizing: border-box;
     }
+    .result-line { margin-bottom: 6px; }
+    .converted-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 6px;
+    }
+    .converted-box {
+      display: inline-block;
+      min-width: 120px;
+      padding: 4px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .copy-btn {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: #eef2ff; }
     .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: var(--shell-gap); }
     .chart-head select { width: auto; min-width: 84px; padding: 6px 8px; font-size: 13px; }
     .ascii-wrap {
@@ -883,13 +911,40 @@
     }
 
     function renderResult(d) {
-      resultBox.textContent =
-`模式：${d.mode}
-来源：${d.source}
-换算：${Number(d.amount).toFixed(2)} ${d.base} = ${Number(d.converted).toFixed(4)} ${d.target}
-使用汇率：1 ${d.base} = ${d.rate} ${d.target}
-更新时间：${d.updated_at}
-说明：${d.note}`;
+      const convertedValue = Number(d.converted).toFixed(4);
+      resultBox.innerHTML = `
+<div class="result-line">模式：${d.mode}</div>
+<div class="result-line">来源：${d.source}</div>
+<div class="result-line">换算：${Number(d.amount).toFixed(2)} ${d.base} = 
+  <span class="converted-wrap">
+    <span class="converted-box" id="convertedValueBox">${convertedValue}</span>
+    <span>${d.target}</span>
+    <button type="button" class="copy-btn" id="copyConvertedBtn" title="复制换算结果">复制</button>
+  </span>
+</div>
+<div class="result-line">使用汇率：1 ${d.base} = ${d.rate} ${d.target}</div>
+<div class="result-line">更新时间：${d.updated_at}</div>
+<div class="result-line">说明：${d.note}</div>`;
+
+      const copyBtn = document.getElementById("copyConvertedBtn");
+      if (copyBtn) {
+        copyBtn.addEventListener("click", async () => {
+          const text = convertedValue;
+          try {
+            await navigator.clipboard.writeText(text);
+            copyBtn.textContent = "已复制";
+          } catch {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            copyBtn.textContent = "已复制";
+          }
+          setTimeout(() => { copyBtn.textContent = "复制"; }, 1200);
+        });
+      }
     }
 
     async function convert() {
