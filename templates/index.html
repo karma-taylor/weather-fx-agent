@@ -965,8 +965,28 @@
       errorBox.textContent = "";
     }
 
+    function formatRateLineForCNY(base, target, rateRaw) {
+      const r = Number(rateRaw);
+      if (!Number.isFinite(r) || r <= 0) {
+        return `1 ${base} = ${rateRaw} ${target}`;
+      }
+      const hasCny = base === "CNY" || target === "CNY";
+      if (!hasCny) {
+        return `1 ${base} = ${r} ${target}`;
+      }
+      if (target === "CNY" && base !== "CNY") {
+        return `1 ${base} = ${r.toFixed(6)} CNY`;
+      }
+      if (base === "CNY" && target !== "CNY") {
+        const inv = 1 / r;
+        return `1 ${target} = ${inv.toFixed(6)} CNY`;
+      }
+      return `1 ${base} = ${r} ${target}`;
+    }
+
     function renderResult(d) {
       const convertedValue = Number(d.converted).toFixed(2);
+      const rateLineText = formatRateLineForCNY(d.base, d.target, d.rate);
       resultBox.innerHTML = `
 <div class="result-line">模式：${d.mode}</div>
 <div class="result-line">来源：${d.source}</div>
@@ -977,7 +997,7 @@
     <button type="button" class="copy-btn" id="copyConvertedBtn" title="复制换算结果">复制</button>
   </span>
 </div>
-<div class="result-line">使用汇率：1 ${d.base} = ${d.rate} ${d.target}</div>
+<div class="result-line">使用汇率：${rateLineText}</div>
 <div class="result-line">更新时间：${d.updated_at}</div>
 <div class="result-line">说明：${d.note}</div>`;
 
