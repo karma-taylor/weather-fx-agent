@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-store" />
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="/static/manifest.json" />
   <title>汇率换算 Agent（Web）</title>
   <style>
     body { font-family: "Segoe UI", Arial, sans-serif; background: #f3f6fb; margin: 0; padding: 24px; color: #1f2937; }
@@ -530,8 +532,51 @@
     const errorBox = document.getElementById("errorBox");
     const fixedNoteEl = document.getElementById("fixedNote");
     const DEFAULT_FIXED_RATE_KEY = "weather_fx_default_fixed_rate";
+    const OFFLINE_RATE_CACHE_KEY = "weather_fx_offline_rate_cache_v1";
 
     let chartSeries = [];
+
+    function loadOfflineRateCache() {
+      try {
+        const raw = localStorage.getItem(OFFLINE_RATE_CACHE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveOfflineRateCache(cacheObj) {
+      localStorage.setItem(OFFLINE_RATE_CACHE_KEY, JSON.stringify(cacheObj));
+    }
+
+    function rateCacheKey(base, target, bank) {
+      return `${String(base).toUpperCase()}_${String(target).toUpperCase()}_${String(bank)}`;
+    }
+
+    function storeLatestRealtimeRate(data, bank) {
+      if (!data || data.mode !== "网络汇率") return;
+      const key = rateCacheKey(data.base, data.target, bank || data.source);
+      const cacheObj = loadOfflineRateCache();
+      cacheObj[key] = {
+        base: data.base,
+        target: data.target,
+        bank: bank || data.source,
+        rate: Number(data.rate),
+        updated_at: data.updated_at || new Date().toISOString(),
+      };
+      saveOfflineRateCache(cacheObj);
+    }
+
+    function getLatestRealtimeRate(base, target, bank) {
+      const key = rateCacheKey(base, target, bank);
+      const hit = loadOfflineRateCache()[key];
+      if (!hit) return null;
+      const rate = Number(hit.rate);
+      if (!Number.isFinite(rate) || rate <= 0) return null;
+      return hit;
+    }
 
     function fillCurrencies() {
       baseInputEl.value = "USD";
@@ -864,6 +909,37 @@
       if (payload.base === payload.target) return showError("待计算币种和目标币种不能相同。");
       if (payload.use_fixed_rate && payload.fixed_rate <= 0) return showError("固定汇率必须大于 0。");
 
+      // Fixed-rate mode must work both online/offline (local compute only).
+      if (payload.use_fixed_rate) {
+        const localNow = new Date();
+        const rate = Number(payload.fixed_rate);
+        const converted = Number(payload.amount) * rate;
+        const data = {
+          mode: "固定汇率",
+          source: "手工固定汇率",
+          base: payload.base,
+          target: payload.target,
+          amount: Number(payload.amount),
+          rate: Number(rate.toFixed(6)),
+          converted: Number(converted.toFixed(6)),
+          updated_at: localNow.toLocaleString("zh-CN", { hour12: false }),
+          note: "离线/在线均可用（本地固定汇率计算）。",
+        };
+        renderResult(data);
+        pushHistoryEntry({
+          localTime: localNow.toLocaleString("zh-CN", { hour12: false }),
+          mode: data.mode,
+          source: data.source,
+          base: data.base,
+          target: data.target,
+          amount: data.amount,
+          rate: data.rate,
+          converted: data.converted,
+          updated_at: data.updated_at,
+        });
+        return;
+      }
+
       convertBtn.disabled = true;
       convertBtn.textContent = "计算中...";
       resultBox.textContent = "正在计算，请稍候...";
@@ -877,6 +953,7 @@
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.detail || "请求失败");
         renderResult(data);
+        storeLatestRealtimeRate(data, payload.bank_source);
         pushHistoryEntry({
           localTime: new Date().toLocaleString("zh-CN", { hour12: false }),
           mode: data.mode,
@@ -889,12 +966,49 @@
           updated_at: data.updated_at,
         });
       } catch (e) {
-        showError(e.message || "网络异常，请稍后重试。");
-        resultBox.textContent = "计算失败。";
+        const cached = getLatestRealtimeRate(payload.base, payload.target, payload.bank_source);
+        if (cached) {
+          const converted = Number(payload.amount) * Number(cached.rate);
+          const fallback = {
+            mode: "网络汇率（离线缓存）",
+            source: cached.bank,
+            base: payload.base,
+            target: payload.target,
+            amount: Number(payload.amount),
+            rate: Number(Number(cached.rate).toFixed(6)),
+            converted: Number(converted.toFixed(6)),
+            updated_at: cached.updated_at,
+            note: "当前网络不可用，使用最近一次在线汇率缓存计算。",
+          };
+          renderResult(fallback);
+          showError(`当前离线，已使用缓存汇率（更新时间：${cached.updated_at}）。`);
+          pushHistoryEntry({
+            localTime: new Date().toLocaleString("zh-CN", { hour12: false }),
+            mode: fallback.mode,
+            source: fallback.source,
+            base: fallback.base,
+            target: fallback.target,
+            amount: fallback.amount,
+            rate: fallback.rate,
+            converted: fallback.converted,
+            updated_at: fallback.updated_at,
+          });
+        } else {
+          showError(e.message || "网络异常，请稍后重试。");
+          resultBox.textContent = "计算失败。";
+        }
       } finally {
         convertBtn.disabled = false;
         convertBtn.textContent = "立即换算";
       }
+    }
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/static/sw.js").catch(() => {
+          // Offline capability is best-effort; ignore registration errors.
+        });
+      });
     }
 
     fillCurrencies();

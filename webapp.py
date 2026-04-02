@@ -34,9 +34,11 @@ class ConvertRequest(BaseModel):
     bank_source: str = "中国银行"
 
 
-app = FastAPI(title="Weather-FX Web App")
-app.mount("/static", StaticFiles(directory="."), name="static")
 BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+app = FastAPI(title="Weather-FX Web App")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 TEMPLATE_FILE = BASE_DIR / "templates" / "index.html"
 VISIT_LOG_DIR = BASE_DIR / "logs"
 VISIT_LOG_DIR.mkdir(parents=True, exist_ok=True)

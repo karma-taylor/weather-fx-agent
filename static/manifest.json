@@ -1,0 +1,10 @@
+{
+  "name": "汇率计算器",
+  "short_name": "汇率计算器",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#2563eb",
+  "lang": "zh-CN",
+  "description": "支持在线与离线缓存回退的汇率计算工具"
+}
