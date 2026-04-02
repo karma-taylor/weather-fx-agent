@@ -178,6 +178,9 @@
     .result-pane-left {
       align-self: stretch;
     }
+    .result-pane-left .result-text {
+      margin-top: -4px;
+    }
     .chart-pane {
       display: flex;
       flex-direction: column;
@@ -215,13 +218,14 @@
     }
     .converted-box {
       display: inline-block;
-      min-width: 92px;
+      min-width: 0;
       padding: 2px 6px;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
       background: #f8fafc;
       font-weight: 700;
       letter-spacing: 0.2px;
+      width: fit-content;
     }
     .copy-btn {
       border: 1px solid #cbd5e1;
