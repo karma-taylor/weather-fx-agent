@@ -194,21 +194,29 @@
       border: none;
       border-radius: 0;
       background: transparent;
-      padding: 0;
+      padding: 10px 0 0 0;
       min-height: 0;
       box-sizing: border-box;
     }
     .result-line { margin-bottom: 3px; }
+    .result-line-convert {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      overflow: hidden;
+    }
     .converted-wrap {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      margin-left: 6px;
+      margin-left: 2px;
     }
     .converted-box {
       display: inline-block;
-      min-width: 120px;
-      padding: 4px 8px;
+      min-width: 92px;
+      padding: 2px 6px;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
       background: #f8fafc;
@@ -915,7 +923,7 @@
       resultBox.innerHTML = `
 <div class="result-line">模式：${d.mode}</div>
 <div class="result-line">来源：${d.source}</div>
-<div class="result-line">换算：${Number(d.amount).toFixed(2)} ${d.base} = 
+<div class="result-line result-line-convert">换算：${Number(d.amount).toFixed(2)} ${d.base} =
   <span class="converted-wrap">
     <span class="converted-box" id="convertedValueBox">${convertedValue}</span>
     <span>${d.target}</span>
