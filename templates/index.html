@@ -194,7 +194,7 @@
       border: none;
       border-radius: 0;
       background: transparent;
-      padding: 10px 0 0 0;
+      padding: 0;
       min-height: 0;
       box-sizing: border-box;
     }
@@ -919,7 +919,7 @@
     }
 
     function renderResult(d) {
-      const convertedValue = Number(d.converted).toFixed(4);
+      const convertedValue = Number(d.converted).toFixed(2);
       resultBox.innerHTML = `
 <div class="result-line">模式：${d.mode}</div>
 <div class="result-line">来源：${d.source}</div>
