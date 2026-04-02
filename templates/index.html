@@ -136,6 +136,20 @@
       padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px;
     }
     .combo-item:hover { background: #eef2ff; }
+    .swap-wrap { display: flex; justify-content: center; }
+    .swap-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid #93c5fd;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 700;
+      padding: 0;
+    }
+    .swap-btn:hover { background: #dbeafe; }
     .inline { display: flex; align-items: center; gap: 10px; }
     .inline input[type="checkbox"] { width: 18px; height: 18px; }
     button { border: none; background: #2563eb; color: #fff; border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; }
@@ -359,7 +373,9 @@
           <button type="button" class="combo-btn" id="targetBtn">▼</button>
           <div class="combo-list" id="targetList"></div>
         </div>
-        <div></div>
+        <div class="swap-wrap">
+          <button type="button" id="swapCurrenciesBtn" class="swap-btn" title="一键调换待计算币种与目标币种">⇅</button>
+        </div>
       </div>
 
       <div class="grid form-row">
@@ -557,6 +573,7 @@
     const targetBtnEl = document.getElementById("targetBtn");
     const baseListEl = document.getElementById("baseList");
     const targetListEl = document.getElementById("targetList");
+    const swapCurrenciesBtn = document.getElementById("swapCurrenciesBtn");
     const amountEl = document.getElementById("amount");
     const useFixedEl = document.getElementById("useFixed");
     const fixedRateEl = document.getElementById("fixedRate");
@@ -749,6 +766,24 @@
       const parsed = parseCurrencyCode(inputEl.value) || "";
       if (parsed) inputEl.dataset.code = parsed;
       return parsed;
+    }
+
+    function swapCurrencies() {
+      const baseCode = getCurrencyCode(baseInputEl);
+      const targetCode = getCurrencyCode(targetInputEl);
+      if (!baseCode || !targetCode) {
+        showError("请先选择有效的待计算币种和目标币种。");
+        return;
+      }
+      const baseObj = CURRENCIES.find((c) => c.code === baseCode);
+      const targetObj = CURRENCIES.find((c) => c.code === targetCode);
+      if (!baseObj || !targetObj) return;
+
+      setInputCurrency(baseInputEl, targetObj);
+      setInputCurrency(targetInputEl, baseObj);
+      updateFixedNote();
+      clearError();
+      refreshRateChart();
     }
 
     function syncModeUI() {
@@ -1094,6 +1129,7 @@
     saveDefaultFixedBtn.addEventListener("click", saveDefaultFixedRate);
     chartDaysEl.addEventListener("change", refreshRateChart);
     bankSourceEl.addEventListener("change", refreshRateChart);
+    swapCurrenciesBtn.addEventListener("click", swapCurrencies);
     baseInputEl.addEventListener("change", () => {
       updateFixedNote();
       refreshRateChart();
