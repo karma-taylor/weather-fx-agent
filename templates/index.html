@@ -171,28 +171,23 @@
     }
     .mini-icon-btn:hover { background: #eef2ff; }
     .grid.form-row:has(.preset-chips-block) {
-      align-items: start;
+      align-items: center;
     }
     .preset-chips-block {
       box-sizing: border-box;
       width: 100%;
       max-width: 210px;
       margin: 0;
-      padding: 8px 10px;
+      padding: 4px 6px;
       justify-self: stretch;
-      align-self: start;
-      border: 2px solid #93c5fd;
+      align-self: center;
+      display: flex;
+      align-items: center;
+      min-height: 42px;
+      border: 1px solid #c7d0dd;
       border-radius: 8px;
-      background: #f8fafc;
+      background: #fff;
       min-width: 0;
-    }
-    .preset-chips-head {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: #374151;
-      margin: 0 0 4px;
-      line-height: 1.25;
     }
     .preset-chips {
       display: flex;
@@ -200,12 +195,14 @@
       gap: 4px;
       align-items: center;
       justify-content: stretch;
+      width: 100%;
+      min-width: 0;
     }
     .preset-chip {
       flex: 1 1 0;
       min-width: 0;
       width: 0;
-      height: 30px;
+      height: 32px;
       padding: 0 2px;
       border-radius: 6px;
       border: 2px solid #e5e7eb;
@@ -243,12 +240,6 @@
     }
     .preset-chip--on:hover {
       background: #1d4ed8;
-    }
-    .preset-chips-hint {
-      margin: 0 0 6px;
-      font-size: 10px;
-      color: #94a3b8;
-      line-height: 1.4;
     }
     .output-shell {
       --shell-gap: 24px;
@@ -465,9 +456,7 @@
           <div class="combo-list" id="targetList"></div>
         </div>
         <div class="preset-chips-block" id="presetChipsBlock">
-          <span class="preset-chips-head">人民币固定档</span>
-          <p class="preset-chips-hint">该汇率只与人民币（CNY）的换算相关。</p>
-          <div class="preset-chips" id="cnyPresetChips" role="group" aria-label="对人民币固定汇率快捷开关"></div>
+          <div class="preset-chips" id="cnyPresetChips" role="group" aria-label="对人民币固定汇率快捷开关（仅适用于外币与 CNY 的换算）"></div>
         </div>
       </div>
 
