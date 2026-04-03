@@ -194,20 +194,22 @@
     }
     .preset-chips {
       display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
+      flex-wrap: nowrap;
+      gap: 4px;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: stretch;
     }
     .preset-chip {
-      min-width: 36px;
-      height: 32px;
-      padding: 0 8px;
+      flex: 1 1 0;
+      min-width: 0;
+      width: 0;
+      height: 30px;
+      padding: 0 2px;
       border-radius: 6px;
       border: 2px solid #e5e7eb;
       background: #f3f4f6;
       color: #9ca3af;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       cursor: not-allowed;
       line-height: 1;
