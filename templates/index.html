@@ -170,6 +170,91 @@
       background: #f8fafc; color: #334155; font-size: 14px; padding: 0; line-height: 1;
     }
     .mini-icon-btn:hover { background: #eef2ff; }
+    .fixed-rate-tag-slot {
+      box-sizing: border-box;
+      min-height: 42px;
+      border: 2px solid #93c5fd;
+      border-radius: 8px;
+      background: #eff6ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+    .fixed-rate-tag-slot.is-empty { background: #f8fafc; border-color: #cbd5e1; }
+    .fixed-rate-tag-char {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1d4ed8;
+      line-height: 1;
+      user-select: none;
+    }
+    .fixed-rate-tag-slot.is-empty .fixed-rate-tag-char { color: #94a3b8; font-weight: 500; font-size: 14px; }
+    .preset-chips-block {
+      max-width: 760px;
+      margin: 4px auto 12px;
+      padding: 0;
+      transform: translateX(36px);
+    }
+    .preset-chips-head {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    .preset-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .preset-chip {
+      min-width: 44px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+      background: #f3f4f6;
+      color: #9ca3af;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: not-allowed;
+      line-height: 1;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .preset-chip:disabled { opacity: 1; }
+    .preset-chip--nosave {
+      opacity: 0.5;
+    }
+    .preset-chip--locked:not(.preset-chip--nosave) {
+      border-color: #e5e7eb;
+      background: #f3f4f6;
+      color: #9ca3af;
+    }
+    .preset-chip--eligible {
+      border-color: #93c5fd;
+      background: #eff6ff;
+      color: #1d4ed8;
+      cursor: pointer;
+    }
+    .preset-chip--eligible:hover {
+      background: #dbeafe;
+    }
+    .preset-chip--on {
+      background: #2563eb;
+      color: #fff;
+      border-color: #1d4ed8;
+      box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.9);
+    }
+    .preset-chip--on:hover {
+      background: #1d4ed8;
+    }
+    .preset-chips-hint {
+      margin: 8px 0 0;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
     .output-shell {
       --shell-gap: 24px;
       margin-top: 16px;
@@ -330,6 +415,7 @@
         margin-top: 8px;
       }
       .form-row { width: 100%; max-width: 760px; transform: none; margin-left: 0; margin-right: 0; }
+      .preset-chips-block { transform: none; margin-left: 0; margin-right: 0; max-width: 100%; }
       .grid { grid-template-columns: 1fr; }
       .right-field { justify-self: stretch; width: 100%; }
       .fixed-rate-wrap { width: 100%; justify-self: stretch; }
@@ -383,7 +469,9 @@
           <button type="button" class="combo-btn" id="targetBtn">▼</button>
           <div class="combo-list" id="targetList"></div>
         </div>
-        <div></div>
+        <div class="right-field fixed-rate-tag-slot is-empty" id="fixedRateTagSlot" title="保存默认固定汇率后，此处显示待计算币种单字标签">
+          <span class="fixed-rate-tag-char" id="fixedRateTagChar"></span>
+        </div>
       </div>
 
       <div class="grid form-row">
@@ -399,6 +487,12 @@
           <input id="fixedRate" class="right-field" type="number" step="0.000001" min="0" placeholder="例如 7.200000" disabled />
           <button type="button" id="saveDefaultFixedBtn" class="mini-icon-btn" title="设为默认固定汇率">💾</button>
         </div>
+      </div>
+
+      <div class="preset-chips-block" id="presetChipsBlock">
+        <div class="preset-chips-head">人民币固定档</div>
+        <div class="preset-chips" id="cnyPresetChips" role="group" aria-label="对人民币固定汇率快捷开关"></div>
+        <p class="preset-chips-hint">该汇率只与人民币（CNY）的换算相关；请先选好外币与人民币、输入汇价后点 💾 存入对应档位。</p>
       </div>
 
       <div class="grid form-row">
@@ -596,10 +690,20 @@
     const resultBox = document.getElementById("resultBox");
     const errorBox = document.getElementById("errorBox");
     const fixedNoteEl = document.getElementById("fixedNote");
+    const fixedRateTagSlotEl = document.getElementById("fixedRateTagSlot");
+    const fixedRateTagCharEl = document.getElementById("fixedRateTagChar");
     const DEFAULT_FIXED_RATE_KEY = "weather_fx_default_fixed_rate";
+    const DEFAULT_FIXED_BASE_KEY = "weather_fx_default_fixed_base";
+    /** 完整固定汇率快照：仅由 💾 写入；网络换算与接口不会改写。 */
+    const FIXED_PREFS_KEY = "weather_fx_fixed_prefs_v1";
     const OFFLINE_RATE_CACHE_KEY = "weather_fx_offline_rate_cache_v1";
+    /** 各外币「1 代码 = rate 人民币」；仅由 💾 在 CNY 货币对下写入。 */
+    const CNY_FIXED_PRESETS_KEY = "weather_fx_cny_fixed_presets_v1";
+    const PRESET_SLOT_ORDER = ["USD", "RUB", "TRY", "IQD", "JPY", "EUR"];
 
     let chartSeries = [];
+    let activePresetForeignCode = null;
+    let presetChipsBuilt = false;
 
     function loadOfflineRateCache() {
       try {
@@ -765,6 +869,7 @@
         } else {
           inputEl.dataset.code = "";
         }
+        updateFixedNote();
       });
     }
 
@@ -774,6 +879,180 @@
       const parsed = parseCurrencyCode(inputEl.value) || "";
       if (parsed) inputEl.dataset.code = parsed;
       return parsed;
+    }
+
+    function foreignSideOfCNYPair(baseCode, targetCode) {
+      const b = String(baseCode || "").toUpperCase();
+      const t = String(targetCode || "").toUpperCase();
+      if (!b || !t || b === t) return null;
+      if (b === "CNY" && t !== "CNY") return t;
+      if (t === "CNY" && b !== "CNY") return b;
+      return null;
+    }
+
+    function getEligibleForeignForCNYPair() {
+      return foreignSideOfCNYPair(getCurrencyCode(baseInputEl), getCurrencyCode(targetInputEl));
+    }
+
+    /** 输入框表示 1 base = uiRate target 时，换算为「1 外币 = x CNY」的 x */
+    function presetStoredRateFromUiPair(baseCode, targetCode, uiRate) {
+      const b = String(baseCode || "").toUpperCase();
+      const t = String(targetCode || "").toUpperCase();
+      const r = Number(uiRate);
+      if (!Number.isFinite(r) || r <= 0) return NaN;
+      if (t === "CNY" && b !== "CNY") return r;
+      if (b === "CNY" && t !== "CNY") return 1 / r;
+      return NaN;
+    }
+
+    /** 已存「1 外币 = p CNY」时，当前货币对下输入框应显示的 1 base = ? target */
+    function uiRateFromPresetForPair(baseCode, targetCode, presetOneForeignPerCny) {
+      const b = String(baseCode || "").toUpperCase();
+      const t = String(targetCode || "").toUpperCase();
+      const p = Number(presetOneForeignPerCny);
+      if (!Number.isFinite(p) || p <= 0) return "";
+      if (t === "CNY" && b !== "CNY") return String(p);
+      if (b === "CNY" && t !== "CNY") return String(1 / p);
+      return "";
+    }
+
+    function loadCNYPresets() {
+      try {
+        const raw = localStorage.getItem(CNY_FIXED_PRESETS_KEY);
+        if (!raw) return {};
+        const o = JSON.parse(raw);
+        if (!o || typeof o !== "object") return {};
+        const out = {};
+        for (const k of Object.keys(o)) {
+          const r = Number(o[k]);
+          if (Number.isFinite(r) && r > 0) out[String(k).toUpperCase()] = r;
+        }
+        return out;
+      } catch {
+        return {};
+      }
+    }
+
+    function saveCNYPresets(presets) {
+      localStorage.setItem(CNY_FIXED_PRESETS_KEY, JSON.stringify(presets));
+    }
+
+    function currencyShortTagGlyph(code) {
+      const upper = String(code || "").toUpperCase().trim();
+      if (!upper) return "";
+      const row = CURRENCIES.find((c) => c.code === upper);
+      if (row && row.zh) {
+        const ch = [...String(row.zh).trim()][0];
+        return ch || upper.charAt(0);
+      }
+      return upper.charAt(0);
+    }
+
+    function updateFixedRateTag() {
+      if (!fixedRateTagSlotEl || !fixedRateTagCharEl) return;
+      const p = readFixedPrefs();
+      const currentBase = getCurrencyCode(baseInputEl) || "";
+      const currentTarget = getCurrencyCode(targetInputEl) || "";
+      const show =
+        p &&
+        currentBase === p.base &&
+        currentTarget === p.target &&
+        Number.isFinite(p.rate) &&
+        p.rate > 0;
+      if (show) {
+        fixedRateTagCharEl.textContent = currencyShortTagGlyph(p.base);
+        fixedRateTagSlotEl.classList.remove("is-empty");
+        fixedRateTagSlotEl.title = `已存默认固定汇率：1 ${p.base} = ${p.rate} ${p.target}`;
+      } else {
+        fixedRateTagCharEl.textContent = "";
+        fixedRateTagSlotEl.classList.add("is-empty");
+        fixedRateTagSlotEl.title = "保存默认固定汇率后，此处显示待计算币种单字标签";
+      }
+    }
+
+    function reconcilePresetChipWithPair() {
+      const eligible = getEligibleForeignForCNYPair();
+      if (activePresetForeignCode && eligible !== activePresetForeignCode) {
+        activePresetForeignCode = null;
+        useFixedEl.checked = false;
+      }
+    }
+
+    function updatePresetChipsUI() {
+      const el = document.getElementById("cnyPresetChips");
+      if (!el || !presetChipsBuilt) return;
+      const presets = loadCNYPresets();
+      const eligible = getEligibleForeignForCNYPair();
+      el.querySelectorAll(".preset-chip").forEach((btn) => {
+        const code = (btn.dataset.code || "").toUpperCase();
+        const has = Number(presets[code] || 0) > 0;
+        btn.classList.remove("preset-chip--eligible", "preset-chip--on", "preset-chip--locked", "preset-chip--nosave");
+        if (!has) {
+          btn.classList.add("preset-chip--locked", "preset-chip--nosave");
+          btn.disabled = true;
+          btn.title = `尚未保存该档：请选 ${code} 与 CNY、输入汇价后点 💾`;
+          btn.setAttribute("aria-pressed", "false");
+          return;
+        }
+        if (eligible === code) {
+          btn.classList.add("preset-chip--eligible");
+          btn.disabled = false;
+          const pv = presets[code];
+          btn.title = `已存汇价 1 ${code} = ${pv} CNY，点击开关启用或关闭`;
+          if (activePresetForeignCode === code) {
+            btn.classList.add("preset-chip--on");
+            btn.setAttribute("aria-pressed", "true");
+          } else {
+            btn.setAttribute("aria-pressed", "false");
+          }
+        } else {
+          btn.classList.add("preset-chip--locked");
+          btn.disabled = true;
+          btn.title = `当前不是「${code}」与人民币的换算，不可用`;
+          btn.setAttribute("aria-pressed", "false");
+        }
+      });
+    }
+
+    function onPresetChipClick(e) {
+      const btn = e.target.closest(".preset-chip");
+      if (!btn || btn.disabled) return;
+      const code = (btn.dataset.code || "").toUpperCase();
+      const eligible = getEligibleForeignForCNYPair();
+      const presets = loadCNYPresets();
+      const rateStored = Number(presets[code] || 0);
+      if (eligible !== code || !Number.isFinite(rateStored) || rateStored <= 0) return;
+
+      if (activePresetForeignCode === code) {
+        activePresetForeignCode = null;
+        useFixedEl.checked = false;
+      } else {
+        activePresetForeignCode = code;
+        useFixedEl.checked = true;
+        const b = getCurrencyCode(baseInputEl);
+        const t = getCurrencyCode(targetInputEl);
+        const ui = uiRateFromPresetForPair(b, t, rateStored);
+        if (ui) fixedRateEl.value = ui;
+      }
+      syncModeUI();
+      updatePresetChipsUI();
+    }
+
+    function buildPresetChipButtons() {
+      const el = document.getElementById("cnyPresetChips");
+      if (!el || presetChipsBuilt) return;
+      el.innerHTML = "";
+      for (const code of PRESET_SLOT_ORDER) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "preset-chip preset-chip--locked preset-chip--nosave";
+        b.dataset.code = code;
+        b.textContent = currencyShortTagGlyph(code);
+        b.setAttribute("aria-pressed", "false");
+        el.appendChild(b);
+      }
+      el.addEventListener("click", onPresetChipClick);
+      presetChipsBuilt = true;
     }
 
     function swapCurrencies() {
@@ -803,19 +1082,80 @@
     }
 
     function updateFixedNote() {
+      reconcilePresetChipWithPair();
       const rate = Number(fixedRateEl.value || 0);
       const rateText = Number.isFinite(rate) && rate > 0 ? rate : 0;
       const baseCode = getCurrencyCode(baseInputEl) || "?";
       const targetCode = getCurrencyCode(targetInputEl) || "?";
       fixedNoteEl.textContent = `1 ${baseCode} = ${rateText} ${targetCode}`;
+      updateFixedRateTag();
+      updatePresetChipsUI();
     }
 
-    function loadDefaultFixedRate() {
-      const saved = Number(localStorage.getItem(DEFAULT_FIXED_RATE_KEY) || 0);
-      if (Number.isFinite(saved) && saved > 0) {
-        fixedRateEl.value = String(saved);
-        updateFixedNote();
+    function readFixedPrefs() {
+      try {
+        const raw = localStorage.getItem(FIXED_PREFS_KEY);
+        if (raw) {
+          const o = JSON.parse(raw);
+          const rate = Number(o.rate);
+          const base = String(o.base || "").toUpperCase().trim();
+          const target = String(o.target || "").toUpperCase().trim();
+          if (!Number.isFinite(rate) || rate <= 0 || !base || !target) return null;
+          return { rate, base, target, useFixed: Boolean(o.useFixed) };
+        }
+      } catch {
+        /* fall through to legacy */
       }
+      const rate = Number(localStorage.getItem(DEFAULT_FIXED_RATE_KEY) || 0);
+      const legacyBase = (localStorage.getItem(DEFAULT_FIXED_BASE_KEY) || "").toUpperCase().trim();
+      if (!Number.isFinite(rate) || rate <= 0) return null;
+      return {
+        rate,
+        base: legacyBase || "USD",
+        target: "CNY",
+        useFixed: true,
+      };
+    }
+
+    function writeFixedPrefsToStorage(prefs) {
+      localStorage.setItem(FIXED_PREFS_KEY, JSON.stringify(prefs));
+      localStorage.setItem(DEFAULT_FIXED_RATE_KEY, String(prefs.rate));
+      localStorage.setItem(DEFAULT_FIXED_BASE_KEY, prefs.base);
+    }
+
+    function seedCNYPresetsFromFullPrefsIfEmpty() {
+      const p = readFixedPrefs();
+      if (!p) return;
+      const foreign = foreignSideOfCNYPair(p.base, p.target);
+      if (!foreign) return;
+      const presets = loadCNYPresets();
+      const existing = Number(presets[foreign] || 0);
+      if (Number.isFinite(existing) && existing > 0) return;
+      const stored = presetStoredRateFromUiPair(p.base, p.target, p.rate);
+      if (!Number.isFinite(stored) || stored <= 0) return;
+      presets[foreign] = stored;
+      saveCNYPresets(presets);
+    }
+
+    function applyInputCurrencyCode(inputEl, code) {
+      const upper = String(code || "").toUpperCase().trim();
+      if (!upper) return;
+      const row = CURRENCIES.find((c) => c.code === upper);
+      if (row) setInputCurrency(inputEl, row);
+      else {
+        inputEl.dataset.code = upper;
+        inputEl.value = upper;
+      }
+    }
+
+    /** 恢复上次 💾 保存的快照；未保存过则不改表单。 */
+    function applyFixedPrefsOnLoad() {
+      const p = readFixedPrefs();
+      if (!p) return;
+      applyInputCurrencyCode(baseInputEl, p.base);
+      applyInputCurrencyCode(targetInputEl, p.target);
+      fixedRateEl.value = String(p.rate);
+      useFixedEl.checked = p.useFixed;
     }
 
     function saveDefaultFixedRate() {
@@ -824,8 +1164,35 @@
         showError("固定汇率必须大于 0，才能设为默认。");
         return;
       }
-      localStorage.setItem(DEFAULT_FIXED_RATE_KEY, String(rate));
+      const baseCode = getCurrencyCode(baseInputEl);
+      const targetCode = getCurrencyCode(targetInputEl);
+      if (!baseCode) {
+        showError("请先选择有效的待计算币种，再保存默认固定汇率。");
+        return;
+      }
+      if (!targetCode) {
+        showError("请先选择有效的目标币种，再保存默认固定汇率。");
+        return;
+      }
+      const prefs = {
+        rate,
+        base: baseCode,
+        target: targetCode,
+        useFixed: useFixedEl.checked,
+      };
+      writeFixedPrefsToStorage(prefs);
+      const foreign = foreignSideOfCNYPair(baseCode, targetCode);
+      if (foreign) {
+        const presets = loadCNYPresets();
+        const stored = presetStoredRateFromUiPair(baseCode, targetCode, rate);
+        if (Number.isFinite(stored) && stored > 0) {
+          presets[foreign] = stored;
+          saveCNYPresets(presets);
+        }
+      }
       clearError();
+      updateFixedRateTag();
+      updatePresetChipsUI();
     }
 
     function setChartLoading(loading) {
@@ -1144,13 +1511,17 @@
     fillCurrencies();
     bindCombo(baseInputEl, baseBtnEl, baseListEl);
     bindCombo(targetInputEl, targetBtnEl, targetListEl);
-    loadDefaultFixedRate();
+    buildPresetChipButtons();
+    applyFixedPrefsOnLoad();
+    seedCNYPresetsFromFullPrefsIfEmpty();
     syncModeUI();
     useFixedEl.addEventListener("change", () => {
+      if (!useFixedEl.checked) activePresetForeignCode = null;
       syncModeUI();
       renderChart();
     });
     fixedRateEl.addEventListener("input", () => {
+      activePresetForeignCode = null;
       updateFixedNote();
       renderChart();
     });
