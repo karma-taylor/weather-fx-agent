@@ -173,10 +173,15 @@
     .grid.form-row:has(.preset-chips-block) {
       align-items: start;
     }
+    .grid.form-row.form-row--target-preset {
+      width: min(900px, 100%);
+      max-width: 900px;
+      grid-template-columns: 170px minmax(220px, 300px) minmax(260px, 1fr);
+    }
     .preset-chips-block {
       box-sizing: border-box;
       width: 100%;
-      max-width: 210px;
+      max-width: none;
       margin: 0;
       padding: 8px 10px;
       justify-self: stretch;
@@ -184,13 +189,25 @@
       border: 2px solid #93c5fd;
       border-radius: 8px;
       background: #f8fafc;
+      min-width: 0;
+    }
+    .preset-chips-head-row {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 6px;
+      min-width: 0;
     }
     .preset-chips-head {
+      flex: 0 0 auto;
       font-size: 12px;
       font-weight: 600;
       color: #374151;
-      margin-bottom: 6px;
+      margin: 0;
       line-height: 1.2;
+      white-space: nowrap;
     }
     .preset-chips {
       display: flex;
@@ -243,10 +260,15 @@
       background: #1d4ed8;
     }
     .preset-chips-hint {
-      margin: 6px 0 0;
+      flex: 1 1 0;
+      min-width: 0;
+      margin: 0;
       font-size: 10px;
       color: #94a3b8;
       line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .output-shell {
       --shell-gap: 24px;
@@ -409,6 +431,14 @@
       }
       .form-row { width: 100%; max-width: 760px; transform: none; margin-left: 0; margin-right: 0; }
       .preset-chips-block { max-width: 100%; justify-self: stretch; }
+      .grid.form-row.form-row--target-preset {
+        width: 100%;
+        max-width: 100%;
+        grid-template-columns: 1fr;
+      }
+      .preset-chips-head-row {
+        flex-wrap: nowrap;
+      }
       .grid { grid-template-columns: 1fr; }
       .right-field { justify-self: stretch; width: 100%; }
       .fixed-rate-wrap { width: 100%; justify-self: stretch; }
@@ -452,7 +482,7 @@
         <input id="amount" class="right-field" type="number" step="0.01" min="0.000001" value="1000.00" />
       </div>
 
-      <div class="grid form-row">
+      <div class="grid form-row form-row--target-preset">
         <div class="target-label-wrap">
           <label for="targetInput">目标币种 (Target)</label>
           <button type="button" id="swapCurrenciesBtn" class="swap-btn" title="一键调换待计算币种与目标币种">⇅</button>
@@ -463,9 +493,11 @@
           <div class="combo-list" id="targetList"></div>
         </div>
         <div class="preset-chips-block" id="presetChipsBlock">
-          <div class="preset-chips-head">人民币固定档</div>
+          <div class="preset-chips-head-row">
+            <span class="preset-chips-head">人民币固定档</span>
+            <p class="preset-chips-hint" title="该汇率只与人民币（CNY）的换算相关；请先选好外币与人民币、输入汇价后点 💾 存入对应档位。">该汇率只与人民币（CNY）的换算相关；请先选好外币与人民币、输入汇价后点 💾 存入对应档位。</p>
+          </div>
           <div class="preset-chips" id="cnyPresetChips" role="group" aria-label="对人民币固定汇率快捷开关"></div>
-          <p class="preset-chips-hint">该汇率只与人民币（CNY）的换算相关；请先选好外币与人民币、输入汇价后点 💾 存入对应档位。</p>
         </div>
       </div>
 
