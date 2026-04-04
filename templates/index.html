@@ -1022,8 +1022,13 @@
       const targetObj = CURRENCIES.find((c) => c.code === targetCode);
       if (!baseObj || !targetObj) return;
 
+      const oldRate = Number(fixedRateEl.value || 0);
       setInputCurrency(baseInputEl, targetObj);
       setInputCurrency(targetInputEl, baseObj);
+      if (Number.isFinite(oldRate) && oldRate > 0) {
+        const inv = 1 / oldRate;
+        fixedRateEl.value = inv >= 1 ? inv.toFixed(6) : inv.toFixed(8);
+      }
       updateFixedNote();
       clearError();
       refreshRateChart();
