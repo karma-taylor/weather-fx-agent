@@ -682,6 +682,7 @@
     let chartSeries = [];
     let activePresetForeignCode = null;
     let presetChipsBuilt = false;
+    let lastFixedPairForInvert = { base: "", target: "" };
 
     function loadOfflineRateCache() {
       try {
@@ -1022,13 +1023,8 @@
       const targetObj = CURRENCIES.find((c) => c.code === targetCode);
       if (!baseObj || !targetObj) return;
 
-      const oldRate = Number(fixedRateEl.value || 0);
       setInputCurrency(baseInputEl, targetObj);
       setInputCurrency(targetInputEl, baseObj);
-      if (Number.isFinite(oldRate) && oldRate > 0) {
-        const inv = 1 / oldRate;
-        fixedRateEl.value = inv >= 1 ? inv.toFixed(6) : inv.toFixed(8);
-      }
       updateFixedNote();
       clearError();
       refreshRateChart();
@@ -1042,7 +1038,26 @@
       updateFixedNote();
     }
 
+    function maybeInvertFixedRateIfPairSwapped() {
+      const b = getCurrencyCode(baseInputEl);
+      const t = getCurrencyCode(targetInputEl);
+      if (!b || !t || b === t) {
+        return;
+      }
+      const pb = lastFixedPairForInvert.base;
+      const pt = lastFixedPairForInvert.target;
+      if (pb && pt && pb !== pt && b === pt && t === pb) {
+        const r = Number(fixedRateEl.value || 0);
+        if (Number.isFinite(r) && r > 0) {
+          const inv = 1 / r;
+          fixedRateEl.value = inv >= 1 ? inv.toFixed(6) : inv.toFixed(8);
+        }
+      }
+      lastFixedPairForInvert = { base: b, target: t };
+    }
+
     function updateFixedNote() {
+      maybeInvertFixedRateIfPairSwapped();
       reconcilePresetChipWithPair();
       const rate = Number(fixedRateEl.value || 0);
       const rateText = Number.isFinite(rate) && rate > 0 ? rate : 0;
