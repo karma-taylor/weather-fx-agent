@@ -8,7 +8,7 @@
   <link rel="manifest" href="/static/manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" />
   <title>汇率换算 Agent（Web）</title>
   <style>
     :root {
@@ -470,14 +470,14 @@
     }
     .chart-stage {
       position: relative;
-      border: 1px solid var(--border-strong);
+      border: 1px solid var(--border);
       border-radius: 10px;
-      background: linear-gradient(180deg, #0e1116 0%, #0a0a0a 100%);
+      background: transparent;
       width: 100%;
       height: 260px;
       min-height: 260px;
       overflow: hidden;
-      box-shadow: inset 0 0 24px rgba(56, 189, 248, 0.06);
+      box-shadow: inset 0 0 24px rgba(56, 189, 248, 0.04);
     }
     .chart-svg { width: 100%; height: 100%; display: block; cursor: crosshair; }
     .convert-row {
@@ -535,6 +535,114 @@
       letter-spacing: 0.04em;
     }
     .curr { color: var(--text-dim); font-size: 12px; letter-spacing: 0.04em; }
+
+    .bank-cards-wrap {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+      min-width: 0;
+    }
+    .bank-card {
+      min-width: 0;
+      height: 42px;
+      padding: 0 4px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
+      text-align: center;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    .bank-card .bank-code { font-size: 12px; letter-spacing: 0.1em; }
+    .bank-card .bank-name {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+    .bank-card:hover:not(:disabled) {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #67e8f9;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+      transform: translateY(-1px);
+    }
+    .bank-card:hover:not(:disabled) .bank-name { color: rgba(224, 247, 255, 0.85); }
+    .bank-card--on,
+    .bank-card--on:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.55), rgba(56, 189, 248, 0.5));
+      border-color: rgba(56, 189, 248, 0.75);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.55);
+    }
+    .bank-card--on .bank-name { color: rgba(255, 255, 255, 0.85); }
+    .bank-cards-wrap.is-disabled .bank-card,
+    .bank-card:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .terminal-log {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #22d3ee;
+      text-shadow: 0 0 6px rgba(34, 211, 238, 0.4), 0 0 12px rgba(34, 211, 238, 0.2);
+      letter-spacing: 0.02em;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+    .terminal-log:empty { display: none; }
+    .terminal-log-line {
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 1.7em;
+    }
+    .terminal-log .arrow { color: var(--text-muted); margin-right: 8px; text-shadow: none; }
+    .terminal-log .ok    { color: #34d399; text-shadow: 0 0 6px rgba(52, 211, 153, 0.4); }
+    .terminal-log .num   { color: #facc15; text-shadow: 0 0 6px rgba(250, 204, 21, 0.4); }
+    .terminal-log .warn  { color: #fbbf24; text-shadow: 0 0 6px rgba(251, 191, 36, 0.35); }
+    .terminal-cursor {
+      display: inline-block;
+      margin-left: 2px;
+      color: #22d3ee;
+      text-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
+      animation: blink 1s steps(1) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .terminal-final {
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .terminal-final.show { opacity: 1; transform: translateY(0); }
+
     @media (max-width: 720px) {
       .page-viewport.history-open .split-track { flex-direction: column; align-items: stretch; }
       .page-viewport.history-open .panel-main { flex: 1 1 auto; max-width: 100%; }
@@ -625,8 +733,30 @@
       </div>
 
       <div class="grid form-row">
-        <label for="bankSource">网络汇率来源</label>
-        <select id="bankSource">
+        <label>网络汇率来源</label>
+        <div class="bank-cards-wrap" id="bankCardsWrap" role="radiogroup" aria-label="网络汇率来源">
+          <button type="button" class="bank-card bank-card--on" data-value="中国银行" title="中国银行 · Bank of China" aria-pressed="true">
+            <span class="bank-code">BOC</span>
+            <span class="bank-name">中国银行</span>
+          </button>
+          <button type="button" class="bank-card" data-value="中国农业银行" title="中国农业银行 · Agricultural Bank of China">
+            <span class="bank-code">ABC</span>
+            <span class="bank-name">农业银行</span>
+          </button>
+          <button type="button" class="bank-card" data-value="中国工商银行" title="中国工商银行 · ICBC">
+            <span class="bank-code">ICBC</span>
+            <span class="bank-name">工商银行</span>
+          </button>
+          <button type="button" class="bank-card" data-value="中国建设银行" title="中国建设银行 · China Construction Bank">
+            <span class="bank-code">CCB</span>
+            <span class="bank-name">建设银行</span>
+          </button>
+          <button type="button" class="bank-card" data-value="威海银行" title="威海银行 · Weihai Commercial Bank">
+            <span class="bank-code">WHB</span>
+            <span class="bank-name">威海银行</span>
+          </button>
+        </div>
+        <select id="bankSource" class="visually-hidden" tabindex="-1" aria-hidden="true">
           <option>中国银行</option>
           <option>中国农业银行</option>
           <option>中国工商银行</option>
@@ -810,6 +940,49 @@
     const fixedRateEl = document.getElementById("fixedRate");
     const saveDefaultFixedBtn = document.getElementById("saveDefaultFixedBtn");
     const bankSourceEl = document.getElementById("bankSource");
+    const bankCardsWrapEl = document.getElementById("bankCardsWrap");
+
+    function setActiveBankCard(value) {
+      if (!bankCardsWrapEl) return;
+      const cards = bankCardsWrapEl.querySelectorAll(".bank-card");
+      cards.forEach((c) => {
+        const on = c.dataset.value === value;
+        c.classList.toggle("bank-card--on", on);
+        c.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+
+    function applyBankCardsDisabled(disabled) {
+      if (!bankCardsWrapEl) return;
+      bankCardsWrapEl.classList.toggle("is-disabled", !!disabled);
+      bankCardsWrapEl.querySelectorAll(".bank-card").forEach((c) => {
+        c.disabled = !!disabled;
+      });
+    }
+
+    if (bankCardsWrapEl) {
+      bankCardsWrapEl.addEventListener("click", (e) => {
+        const btn = e.target.closest(".bank-card");
+        if (!btn || btn.disabled) return;
+        const value = btn.dataset.value;
+        if (!value || bankSourceEl.value === value) {
+          setActiveBankCard(value);
+          return;
+        }
+        bankSourceEl.value = value;
+        setActiveBankCard(value);
+        bankSourceEl.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+
+      // Mirror the hidden <select>'s disabled state onto the card group so
+      // existing fixed-rate toggle logic keeps working without changes.
+      const bankDisabledObserver = new MutationObserver(() => {
+        applyBankCardsDisabled(bankSourceEl.disabled);
+      });
+      bankDisabledObserver.observe(bankSourceEl, { attributes: true, attributeFilter: ["disabled"] });
+      applyBankCardsDisabled(bankSourceEl.disabled);
+      setActiveBankCard(bankSourceEl.value);
+    }
     const chartDaysEl = document.getElementById("chartDays");
     const rateChartEl = document.getElementById("rateChart");
     const rateChartStageEl = document.getElementById("rateChartStage");
@@ -1490,42 +1663,142 @@
       return `1 ${base} = ${r} ${target}`;
     }
 
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    let terminalRunToken = 0;
+    const terminalSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    function tokenizeHtml(html) {
+      const tokens = [];
+      let i = 0;
+      while (i < html.length) {
+        if (html[i] === "<") {
+          const j = html.indexOf(">", i);
+          tokens.push({ type: "tag", value: html.slice(i, j + 1) });
+          i = j + 1;
+        } else if (html[i] === "&") {
+          const j = html.indexOf(";", i);
+          tokens.push({ type: "char", value: html.slice(i, j + 1) });
+          i = j + 1;
+        } else {
+          tokens.push({ type: "char", value: html[i] });
+          i += 1;
+        }
+      }
+      return tokens;
+    }
+
+    async function typeTerminalLines(container, lines, token, cps = 38) {
+      const delay = Math.max(8, 1000 / cps);
+      for (let i = 0; i < lines.length; i++) {
+        if (token !== terminalRunToken) return false;
+        const lineEl = document.createElement("div");
+        lineEl.className = "terminal-log-line";
+        container.appendChild(lineEl);
+        const tokens = tokenizeHtml(lines[i]);
+        let buffer = "";
+        for (const t of tokens) {
+          if (token !== terminalRunToken) return false;
+          buffer += t.value;
+          lineEl.innerHTML = buffer + '<span class="terminal-cursor">_</span>';
+          if (t.type === "char") {
+            await terminalSleep(delay);
+          }
+        }
+        lineEl.innerHTML = buffer;
+        if (i < lines.length - 1) {
+          await terminalSleep(180);
+        }
+      }
+      return true;
+    }
+
+    function buildTerminalLines(d) {
+      const base = escapeHtml(d.base);
+      const target = escapeHtml(d.target);
+      const rateStr = Number(d.rate).toFixed(6);
+      const out = Number(d.converted).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      const lines = ['<span class="arrow">&gt;</span>Initialize Currency Agent...'];
+
+      const mode = String(d.mode || "");
+      if (mode.includes("固定")) {
+        lines.push(`<span class="arrow">&gt;</span>Loading fixed rate: <span class="num">1 ${base} = ${rateStr} ${target}</span>`);
+      } else if (mode.includes("离线") || mode.includes("缓存")) {
+        lines.push(`<span class="arrow">&gt;</span>Fetching real-time rates: ${base} -&gt; ${target}`);
+        lines.push('<span class="arrow">&gt;</span><span class="warn">Network unavailable, falling back to offline cache</span>');
+        lines.push(`<span class="arrow">&gt;</span>Source: ${escapeHtml(d.source)} <span class="warn">(cached @ ${escapeHtml(d.updated_at)})</span>`);
+      } else {
+        lines.push(`<span class="arrow">&gt;</span>Fetching real-time rates: ${base} -&gt; ${target}`);
+        lines.push(`<span class="arrow">&gt;</span>Source: ${escapeHtml(d.source)}`);
+      }
+      lines.push(`<span class="arrow">&gt;</span><span class="ok">Calculation complete.</span> Output: <span class="num">${out} ${target}</span>`);
+      return lines;
+    }
+
+    function attachCopyHandler(copyBtn, convertedValue) {
+      if (!copyBtn) return;
+      copyBtn.addEventListener("click", async () => {
+        const text = convertedValue;
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBtn.textContent = "已复制";
+        } catch {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          copyBtn.textContent = "已复制";
+        }
+        setTimeout(() => { copyBtn.textContent = "复制"; }, 1200);
+      });
+    }
+
     function renderResult(d) {
       const convertedValue = Number(d.converted).toFixed(2);
       const rateLineText = formatRateLineForCNY(d.base, d.target, d.rate);
-      resultBox.innerHTML = `
-<div class="result-line">模式：${d.mode}</div>
-<div class="result-line">来源：${d.source}</div>
-<div class="result-line result-line-convert">换算：${Number(d.amount).toFixed(2)} ${d.base} =
+
+      terminalRunToken += 1;
+      const token = terminalRunToken;
+
+      const logEl = document.createElement("div");
+      logEl.className = "terminal-log";
+
+      const finalEl = document.createElement("div");
+      finalEl.className = "terminal-final";
+      finalEl.innerHTML = `
+<div class="result-line">模式：${escapeHtml(d.mode)}</div>
+<div class="result-line">来源：${escapeHtml(d.source)}</div>
+<div class="result-line result-line-convert">换算：${Number(d.amount).toFixed(2)} ${escapeHtml(d.base)} =
   <span class="converted-wrap">
     <span class="converted-box" id="convertedValueBox">${convertedValue}</span>
-    <span>${d.target}</span>
+    <span>${escapeHtml(d.target)}</span>
     <button type="button" class="copy-btn" id="copyConvertedBtn" title="复制换算结果">复制</button>
   </span>
 </div>
 <div class="result-line">使用汇率：${rateLineText}</div>
-<div class="result-line">更新时间：${d.updated_at}</div>
-<div class="result-line">说明：${d.note}</div>`;
+<div class="result-line">更新时间：${escapeHtml(d.updated_at)}</div>
+<div class="result-line">说明：${escapeHtml(d.note)}</div>`;
 
-      const copyBtn = document.getElementById("copyConvertedBtn");
-      if (copyBtn) {
-        copyBtn.addEventListener("click", async () => {
-          const text = convertedValue;
-          try {
-            await navigator.clipboard.writeText(text);
-            copyBtn.textContent = "已复制";
-          } catch {
-            const ta = document.createElement("textarea");
-            ta.value = text;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-            copyBtn.textContent = "已复制";
-          }
-          setTimeout(() => { copyBtn.textContent = "复制"; }, 1200);
-        });
-      }
+      resultBox.innerHTML = "";
+      resultBox.appendChild(logEl);
+      resultBox.appendChild(finalEl);
+
+      typeTerminalLines(logEl, buildTerminalLines(d), token).then((completed) => {
+        if (!completed || token !== terminalRunToken) return;
+        finalEl.classList.add("show");
+        attachCopyHandler(document.getElementById("copyConvertedBtn"), convertedValue);
+      });
     }
 
     async function convert() {
@@ -1578,7 +1851,18 @@
 
       convertBtn.disabled = true;
       convertBtn.textContent = "计算中...";
-      resultBox.textContent = "正在计算，请稍候...";
+
+      terminalRunToken += 1;
+      const loadingToken = terminalRunToken;
+      const loadingLog = document.createElement("div");
+      loadingLog.className = "terminal-log";
+      resultBox.innerHTML = "";
+      resultBox.appendChild(loadingLog);
+      typeTerminalLines(loadingLog, [
+        '<span class="arrow">&gt;</span>Initialize Currency Agent...',
+        `<span class="arrow">&gt;</span>Fetching real-time rates: ${escapeHtml(payload.base)} -&gt; ${escapeHtml(payload.target)}`,
+        '<span class="arrow">&gt;</span>Awaiting response<span class="terminal-cursor">_</span>',
+      ], loadingToken);
 
       try {
         const resp = await fetch("/api/convert", {
@@ -1631,7 +1915,18 @@
           });
         } else {
           showError(e.message || "网络异常，请稍后重试。");
-          resultBox.textContent = "计算失败。";
+          terminalRunToken += 1;
+          const errToken = terminalRunToken;
+          resultBox.innerHTML = "";
+          const errLog = document.createElement("div");
+          errLog.className = "terminal-log";
+          resultBox.appendChild(errLog);
+          typeTerminalLines(errLog, [
+            '<span class="arrow">&gt;</span>Initialize Currency Agent...',
+            `<span class="arrow">&gt;</span>Fetching real-time rates: ${escapeHtml(payload.base)} -&gt; ${escapeHtml(payload.target)}`,
+            `<span class="arrow">&gt;</span><span class="warn">Request failed: ${escapeHtml(e.message || "network error")}</span>`,
+            '<span class="arrow">&gt;</span><span class="warn">No cached rate available. Aborted.</span>',
+          ], errToken);
         }
       } finally {
         convertBtn.disabled = false;
