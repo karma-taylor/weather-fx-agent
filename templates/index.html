@@ -488,11 +488,63 @@
     #convertBtn {
       min-width: 260px;
       height: 44px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
-      border-radius: 12px;
-      letter-spacing: 0.12em;
+      border-radius: 10px;
+      letter-spacing: 0.22em;
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: transparent;
+      border: 1px solid rgba(56, 189, 248, 0.55);
+      color: #67e8f9;
+      text-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+      box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.06);
+      padding: 0 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: color 0.18s ease, border-color 0.18s ease, background 0.22s ease, box-shadow 0.25s ease, text-shadow 0.2s ease, transform 0.15s ease;
     }
+    #convertBtn::before {
+      content: "[";
+      opacity: 0.55;
+      letter-spacing: 0;
+      margin-right: 8px;
+      transition: opacity 0.2s ease, color 0.2s ease;
+    }
+    #convertBtn::after {
+      content: "]";
+      opacity: 0.55;
+      letter-spacing: 0;
+      margin-left: 8px;
+      transition: opacity 0.2s ease, color 0.2s ease;
+    }
+    #convertBtn:hover:not(:disabled) {
+      color: #ecfeff;
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.55), inset 0 0 18px rgba(56, 189, 248, 0.18);
+      text-shadow: 0 0 10px rgba(34, 211, 238, 0.7);
+      filter: none;
+    }
+    #convertBtn:hover:not(:disabled)::before,
+    #convertBtn:hover:not(:disabled)::after {
+      opacity: 0.9;
+      color: #38bdf8;
+    }
+    #convertBtn:active:not(:disabled) {
+      background: rgba(56, 189, 248, 0.18);
+      transform: translateY(1px);
+    }
+    #convertBtn:disabled {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: var(--text-dim);
+      text-shadow: none;
+      box-shadow: none;
+    }
+    #convertBtn:disabled::before,
+    #convertBtn:disabled::after { opacity: 0.35; }
     .chart-tooltip {
       position: absolute;
       display: none;
@@ -671,7 +723,7 @@
       .chart-pane { min-height: 220px; max-height: none; }
       .chart-stage { height: 220px; min-height: 220px; }
       .ascii-wrap { height: auto; margin-bottom: 0; }
-      #convertBtn { min-width: 180px; width: 70%; }
+      #convertBtn { min-width: 240px; width: 90%; max-width: 360px; }
     }
   </style>
 </head>
@@ -767,7 +819,7 @@
       </div>
 
       <div class="convert-row">
-        <button id="convertBtn">立即换算</button>
+        <button id="convertBtn" type="button" aria-label="立即换算">▷ EXECUTE</button>
       </div>
       <div class="err" id="errorBox"></div>
       <div class="output-shell">
@@ -1850,7 +1902,7 @@
       }
 
       convertBtn.disabled = true;
-      convertBtn.textContent = "计算中...";
+      convertBtn.textContent = "▷ EXECUTING...";
 
       terminalRunToken += 1;
       const loadingToken = terminalRunToken;
@@ -1930,7 +1982,7 @@
         }
       } finally {
         convertBtn.disabled = false;
-        convertBtn.textContent = "立即换算";
+        convertBtn.textContent = "▷ EXECUTE";
       }
     }
 
